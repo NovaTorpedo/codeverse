@@ -49,7 +49,15 @@ if (!input || !values.out) {
   process.exit(2);
 }
 const opts = { repoRoot: process.cwd(), terms: privateTerms(), keepLoopback: true };
-const raw = readFileSync(input, 'utf8');
+/** Windows PowerShell 5.1 `>` writes UTF-16LE; accept that and UTF-8 with or without BOM. */
+function readText(file: string): string {
+  const buf = readFileSync(file);
+  if (buf[0] === 0xff && buf[1] === 0xfe) return buf.subarray(2).toString('utf16le');
+  if (buf[0] === 0xfe && buf[1] === 0xff) return Buffer.from(buf.subarray(2)).swap16().toString('utf16le');
+  if (buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) return buf.subarray(3).toString('utf8');
+  return buf.toString('utf8');
+}
+const raw = readText(input);
 let output: unknown;
 let counts: Record<string, number>;
 

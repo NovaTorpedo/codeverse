@@ -14,7 +14,7 @@ const files = (mode === 'staged'
   : git(['ls-files', '-z'])
 ).split('\0').filter(Boolean);
 
-const BLOCKED_PREFIXES = ['private/', 'bob-prompts/', '.codeverse/raw/', 'node_modules/', '.next/', 'out/', 'apps/viewer/public/data/'];
+const BLOCKED_PREFIXES = ['private/', 'bob-prompts/', '.codeverse/', 'node_modules/', '.next/', 'out/', 'apps/viewer/public/data/'];
 const MARKDOWN_ALLOW = [/^README\.md$/, /^AGENTS\.md$/, /^bob_sessions\//, /^\.bob\//];
 const BINARY = /\.(png|jpe?g|gif|webp|ico|woff2?|ttf|pdf|mp4|glb)$/i;
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
