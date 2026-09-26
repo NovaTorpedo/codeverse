@@ -14,7 +14,7 @@ export const PathStep = z.object({
 export type PathStep = z.infer<typeof PathStep>;
 
 export const Evidence = z.object({
-  kind: z.enum(['log', 'code', 'test']),
+  kind: z.enum(['ticket', 'log', 'code', 'test']),
   text: z.string().max(2000),
   citation: Citation.optional(),
 });

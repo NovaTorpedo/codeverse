@@ -39,6 +39,12 @@ describe('Investigation', () => {
     expect(doc.evidence).toEqual([]);
     expect(doc.ruledOut).toEqual([]);
   });
+  it('accepts incident ticket evidence', () => {
+    const evidence = [{ kind: 'ticket', text: 'Could not reproduce with the support test account (password login).', citation: { file: 'demo/shopfloor/tickets/INC-2417.txt', line: 17 } }];
+    expect(Investigation.safeParse({ ...baseInvestigation, evidence }).success).toBe(true);
+    expect(Investigation.safeParse({ ...baseInvestigation, evidence: [{ ...evidence[0], kind: 'email' }] }).success).toBe(false);
+  });
+
   it('rejects a path with fewer than two steps', () => {
     expect(Investigation.safeParse({ ...baseInvestigation, executionPath: [baseInvestigation.executionPath[0]] }).success).toBe(false);
   });
