@@ -1,0 +1,10 @@
+{
+  "id": "codeverse",
+  "title": "CodeVerse",
+  "description": "CodeVerse visualising its own source: analyzer, stream parser, grounding, bridge and viewer.",
+  "target": ".",
+  "skip": ["demo", "e2e", "worlds"],
+  "semantic": "semantic.json",
+  "tour": "tour.json",
+  "incidents": []
+}

@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
-  "dependencies": { "@codeverse/schema": "*" }
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@codeverse/schema": "*",
+    "@codeverse/stream": "*"
+  }
 }

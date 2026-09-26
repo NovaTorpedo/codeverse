@@ -32,6 +32,10 @@
     "test:demo": "npm test -w @codeverse/shopfloor"
   },
   "devDependencies": {
+    "@codeverse/analyzer": "*",
+    "@codeverse/schema": "*",
+    "@codeverse/scrubber": "*",
+    "@codeverse/stream": "*",
     "@playwright/test": "1.63.0",
     "@types/node": "20.19.43",
     "eslint": "10.11.0",

@@ -1,0 +1,17 @@
+{
+  "id": "shopfloor",
+  "title": "Shopfloor",
+  "description": "A multi-service checkout system. Customers who sign in with SSO cannot complete checkout.",
+  "target": "demo/shopfloor",
+  "skip": [],
+  "semantic": "semantic.json",
+  "tour": "tour.json",
+  "incidents": [
+    {
+      "id": "payment-failed",
+      "title": "Payment failed during checkout",
+      "investigation": "incidents/payment-failed.investigation.json",
+      "recording": "recordings/payment-failed.recording.json"
+    }
+  ]
+}
