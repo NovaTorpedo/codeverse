@@ -25,6 +25,31 @@ function hasWebGL(): boolean {
   }
 }
 
+function FpsMeter() {
+  const [fps, setFps] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    let frames = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      frames++;
+      if (now - last >= 1000) {
+        setFps(Math.round((frames * 1000) / (now - last)));
+        frames = 0;
+        last = now;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return (
+    <div className="glass capsule caption tabular" style={{ position: 'fixed', right: 16, bottom: 16, padding: '6px 12px', zIndex: 50 }}>
+      {fps} fps
+    </div>
+  );
+}
+
 function LivePrompt() {
   const liveStatus = useStore((s) => s.liveStatus);
   const [text, setText] = useState('Payment failed during checkout');
@@ -56,6 +81,7 @@ export function App() {
   const view2d = useStore((s) => s.view2d);
   const set = useStore((s) => s.set);
   const [webgl] = useState(hasWebGL);
+  const [showFps] = useState(() => new URLSearchParams(location.search).has('fps'));
 
   const openWorld = useCallback(
     async (id: string) => {
@@ -192,6 +218,7 @@ export function App() {
       <Search />
       <HelpSheet />
       <Toast />
+      {showFps && <FpsMeter />}
       <AnimatePresence>
         {useStore.getState().loading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass capsule caption" style={{ position: 'fixed', bottom: 20, right: 20, padding: '8px 14px', zIndex: 50 }}>

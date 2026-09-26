@@ -11,10 +11,14 @@ IBM Bob is the engine. A CodeVerse custom mode, skills and slash commands (in [`
 
 ## Run it
 
+Requires Node.js 20.9 or later.
+
 ```bash
 npm install
 npm run dev
 ```
+
+Open http://localhost:3000. `npm run build` produces the static site in `apps/viewer/out`.
 
 ## License
 
