@@ -71,7 +71,8 @@ export function analyze(opts: AnalyzeOptions): AnalysisGraph {
   const repoRoot = path.resolve(opts.repoRoot);
   const targetAbs = path.resolve(repoRoot, opts.target);
   const target = toPosix(path.relative(repoRoot, targetAbs)) || '.';
-  const files = listSourceFiles(targetAbs, opts.skip);
+  const skip = [...(opts.skip ?? []), ...gitignoredDirs(repoRoot)];
+  const files = listSourceFiles(targetAbs, skip);
   const rel = (abs: string) => toPosix(path.relative(repoRoot, abs));
   const relToTarget = (repoRel: string) => (target === '.' ? repoRel : repoRel.slice(target.length + 1));
   const fileSet = new Set(files.map(rel));
@@ -206,7 +207,18 @@ export function analyze(opts: AnalyzeOptions): AnalysisGraph {
     project: { name: opts.name ?? path.basename(targetAbs), root: target, analyzerVersion: ANALYZER_VERSION, fileCount: files.length, loc: totalLoc },
     nodes: sortedNodes,
     edges: sortedEdges,
-    assets: listAssetFiles(targetAbs, opts.skip).map((abs) => ({ path: rel(abs), lines: readText(abs).split('\n').length })),
+    assets: listAssetFiles(targetAbs, skip).map((abs) => ({ path: rel(abs), lines: readText(abs).split('\n').length })),
     sources: opts.includeSources === false ? undefined : sources,
   };
+}
+
+/** Directory names listed in the repository's root .gitignore (e.g. `private/`). */
+function gitignoredDirs(repoRoot: string): string[] {
+  const file = path.join(repoRoot, '.gitignore');
+  if (!existsSync(file)) return [];
+  return readFileSync(file, 'utf8')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => /^[\w.-]+\/$/.test(l))
+    .map((l) => l.slice(0, -1));
 }

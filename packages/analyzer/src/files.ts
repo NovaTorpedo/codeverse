@@ -5,7 +5,7 @@ export const SOURCE_EXT = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs',
 
 const SKIP_DIRS = new Set([
   'node_modules', '.git', '.next', 'out', 'dist', 'build', 'coverage', 'test-results', 'playwright-report',
-  'private', 'bob-prompts', '.codeverse', '.vercel', '.turbo', '.bob',
+  '.codeverse', '.vercel', '.turbo', '.bob',
 ]);
 
 export const ASSET_EXT = ['.json', '.ndjson', '.log', '.md', '.yaml', '.yml', '.txt', '.toml'];
