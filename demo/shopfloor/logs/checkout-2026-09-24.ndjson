@@ -1,0 +1,33 @@
+{"ts":"2026-09-24T14:02:11.037Z","level":"debug","service":"db","event":"db.query","table":"customer_profiles","op":"findById","hit":true}
+{"ts":"2026-09-24T14:02:11.074Z","level":"debug","service":"customer","event":"customer.profile_loaded","customerId":"cus_2001","found":true}
+{"ts":"2026-09-24T14:02:11.111Z","level":"info","service":"auth","event":"auth.login_succeeded","requestId":"a1f09c2e-login","method":"password","userId":"usr_1001","sessionId":"sess_ac783e26-adf"}
+{"ts":"2026-09-24T14:02:11.148Z","level":"info","service":"gateway","event":"http.request","requestId":"a1f09c2e-login","method":"POST","path":"/auth/login","status":200,"durationMs":6}
+{"ts":"2026-09-24T14:02:11.185Z","level":"debug","service":"db","event":"db.query","table":"stock","op":"findById","hit":true}
+{"ts":"2026-09-24T14:02:11.222Z","level":"info","service":"cart","event":"cart.item_added","cartId":"cart_2001","sku":"sku_mse_02","quantity":1}
+{"ts":"2026-09-24T14:02:11.259Z","level":"info","service":"gateway","event":"http.request","requestId":"a1f09c2e-add","method":"POST","path":"/cart/items","status":201,"durationMs":1}
+{"ts":"2026-09-24T14:02:11.296Z","level":"info","service":"checkout","event":"checkout.started","requestId":"a1f09c2e-checkout","orderRef":"ord_a1f09c2e-checkout","cartId":"cart_2001","lines":1,"total":49.5,"currency":"EUR"}
+{"ts":"2026-09-24T14:02:11.333Z","level":"debug","service":"db","event":"db.query","table":"stock","op":"findById","hit":true}
+{"ts":"2026-09-24T14:02:11.370Z","level":"warn","service":"inventory","event":"inventory.low_stock","requestId":"a1f09c2e-checkout","sku":"sku_mse_02","remaining":2}
+{"ts":"2026-09-24T14:02:11.407Z","level":"info","service":"inventory","event":"inventory.reserved","requestId":"a1f09c2e-checkout","reservationId":"res_muikp18m","lines":1}
+{"ts":"2026-09-24T14:02:11.444Z","level":"info","service":"payment","event":"payment.charge_started","requestId":"a1f09c2e-checkout","orderRef":"ord_a1f09c2e-checkout","amountMinor":4950,"currency":"EUR"}
+{"ts":"2026-09-24T14:02:11.481Z","level":"warn","service":"payment.psp","event":"psp.timeout","requestId":"a1f09c2e-checkout","attempt":1,"latencyMs":1840,"idempotencyKey":"ord_a1f09c2e-checkout"}
+{"ts":"2026-09-24T14:02:11.518Z","level":"info","service":"payment.psp","event":"psp.charge_succeeded","requestId":"a1f09c2e-checkout","attempt":2,"latencyMs":150,"amountMinor":4950,"currency":"EUR"}
+{"ts":"2026-09-24T14:02:11.555Z","level":"info","service":"notifications","event":"notifications.queued","requestId":"a1f09c2e-checkout","template":"order-confirmation"}
+{"ts":"2026-09-24T14:02:11.592Z","level":"info","service":"checkout","event":"checkout.completed","requestId":"a1f09c2e-checkout","orderRef":"ord_a1f09c2e-checkout","chargeId":"ch_checkout"}
+{"ts":"2026-09-24T14:02:11.629Z","level":"info","service":"gateway","event":"http.request","requestId":"a1f09c2e-checkout","method":"POST","path":"/checkout","status":201,"durationMs":6}
+{"ts":"2026-09-24T14:02:11.666Z","level":"info","service":"auth","event":"auth.login_succeeded","requestId":"7c4be913-login","method":"sso","userId":"usr_1002","sessionId":"sess_a4cc2a0b-cac"}
+{"ts":"2026-09-24T14:02:11.703Z","level":"info","service":"gateway","event":"http.request","requestId":"7c4be913-login","method":"POST","path":"/auth/sso/callback","status":200,"durationMs":0}
+{"ts":"2026-09-24T14:02:11.740Z","level":"info","service":"gateway","event":"http.request","requestId":"7c4be913-cart","method":"GET","path":"/cart","status":200,"durationMs":0}
+{"ts":"2026-09-24T14:02:11.777Z","level":"debug","service":"db","event":"db.query","table":"stock","op":"findById","hit":true}
+{"ts":"2026-09-24T14:02:11.814Z","level":"info","service":"cart","event":"cart.item_added","cartId":"cart_2002","sku":"sku_kbd_01","quantity":1}
+{"ts":"2026-09-24T14:02:11.851Z","level":"info","service":"gateway","event":"http.request","requestId":"7c4be913-add","method":"POST","path":"/cart/items","status":201,"durationMs":1}
+{"ts":"2026-09-24T14:02:11.888Z","level":"info","service":"checkout","event":"checkout.started","requestId":"7c4be913-checkout","orderRef":"ord_7c4be913-checkout","cartId":"cart_2002","lines":1,"total":129,"currency":"EUR"}
+{"ts":"2026-09-24T14:02:11.925Z","level":"debug","service":"db","event":"db.query","table":"stock","op":"findById","hit":true}
+{"ts":"2026-09-24T14:02:11.962Z","level":"info","service":"inventory","event":"inventory.reserved","requestId":"7c4be913-checkout","reservationId":"res_muikp18r","lines":1}
+{"ts":"2026-09-24T14:02:11.999Z","level":"warn","service":"customer","event":"customer.billing_profile_missing","customerId":"cus_2002","sessionMethod":"sso"}
+{"ts":"2026-09-24T14:02:12.036Z","level":"debug","service":"db","event":"db.query","table":"stock","op":"findById","hit":true}
+{"ts":"2026-09-24T14:02:12.073Z","level":"info","service":"inventory","event":"inventory.released","requestId":"7c4be913-checkout","reservationId":"res_muikp18r"}
+{"ts":"2026-09-24T14:02:12.110Z","level":"warn","service":"notifications","event":"notifications.smtp_degraded","requestId":"7c4be913-checkout","template":"payment-failed","queued":2}
+{"ts":"2026-09-24T14:02:12.147Z","level":"info","service":"notifications","event":"notifications.queued","requestId":"7c4be913-checkout","template":"payment-failed"}
+{"ts":"2026-09-24T14:02:12.184Z","level":"error","service":"checkout","event":"checkout.failed","requestId":"7c4be913-checkout","orderRef":"ord_7c4be913-checkout","error":"TypeError: Cannot read properties of null (reading 'defaultCardToken')"}
+{"ts":"2026-09-24T14:02:12.221Z","level":"error","service":"gateway","event":"http.unhandled_error","requestId":"7c4be913-checkout","method":"POST","path":"/checkout","status":500,"error":"TypeError: Cannot read properties of null (reading 'defaultCardToken')","stack":"TypeError: Cannot read properties of null (reading 'defaultCardToken') |     at PaymentService.charge (/app/src/payment/payment.service.ts:25:31) |     at CheckoutService.placeOrder (/app/src/checkout/checkout.service.ts:28:42) |     at async Object.handler (/app/src/gateway/server.ts:60:21)"}

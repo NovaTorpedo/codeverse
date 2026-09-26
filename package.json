@@ -28,7 +28,8 @@
     "analyze": "tsx packages/analyzer/src/cli.ts",
     "scrub": "tsx packages/scrubber/src/cli.ts",
     "ground": "tsx packages/grounding/src/cli.ts",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath .githooks || true",
+    "test:demo": "npm test -w @codeverse/shopfloor"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

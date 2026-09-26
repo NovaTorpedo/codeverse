@@ -1,0 +1,11 @@
+{
+  "name": "@codeverse/shopfloor",
+  "version": "0.4.2",
+  "private": true,
+  "type": "module",
+  "description": "Sample multi-service checkout system used as a CodeVerse demo world.",
+  "scripts": {
+    "test": "vitest run --config vitest.config.ts",
+    "simulate": "tsx src/scripts/simulate-traffic.ts"
+  }
+}
