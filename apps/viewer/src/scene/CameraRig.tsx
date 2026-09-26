@@ -21,7 +21,7 @@ export function CameraRig({ layout }: { layout: CityLayout }) {
     if (!c) return;
     const r = layout.bounds.radius;
     void c.setLookAt(r * 1.9, r * 1.6, r * 2.2, 0, 0, 0, false);
-    void c.setLookAt(r * 0.62, r * 0.55, r * 0.78, 0, 0, 0, !reducedMotion);
+    void c.setLookAt(r * 0.95, r * 0.9, r * 1.2, 0, 0, 0, !reducedMotion);
   }, [layout, reducedMotion]);
 
   useEffect(() => {

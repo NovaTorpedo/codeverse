@@ -1,6 +1,6 @@
 import { Suspense, useMemo, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Grid, Html, Stars } from '@react-three/drei';
+import { Grid, Stars } from '@react-three/drei';
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
 import { currentIncident, useStore, type LoadedWorld } from '../store';
 import { BobProbes } from './BobProbes';
@@ -8,28 +8,11 @@ import { Buildings } from './Buildings';
 import { CameraRig } from './CameraRig';
 import { Districts } from './Districts';
 import { EdgeLines, Particles, SelectedEdges, useArcs } from './Edges';
-import { Annotations, Phantoms } from './Grounding';
+import { Phantoms } from './Grounding';
 import { IncidentPath } from './IncidentPath';
 import { Cores, Gateways } from './Landmarks';
+import { ProjectorBridge, SceneLabels } from './SceneLabels';
 import { useHighlights } from './useHighlights';
-
-function HoverLabel({ world }: { world: LoadedWorld }) {
-  const hovered = useStore((s) => s.hovered);
-  const selected = useStore((s) => s.selected);
-  const id = hovered ?? selected;
-  const b = id ? world.layout.byId.get(id) : undefined;
-  // Kept mounted: drei <Html> roots are expensive to create and unsafe to unmount mid-render.
-  return (
-    <Html position={b ? [b.x, b.h + 0.9, b.z] : [0, -100, 0]} center zIndexRange={[50, 30]} style={{ pointerEvents: 'none', opacity: b ? 1 : 0 }}>
-      <div className="label-pill">
-        {b?.node.label}
-        <span className="tertiary" style={{ marginLeft: 6 }}>
-          {b?.node.loc} loc
-        </span>
-      </div>
-    </Html>
-  );
-}
 
 function World({ world }: { world: LoadedWorld }) {
   const highlights = useHighlights();
@@ -44,7 +27,7 @@ function World({ world }: { world: LoadedWorld }) {
   return (
     <>
       <CameraRig layout={world.layout} />
-      <Districts layout={world.layout} showLabels={!dim} />
+      <Districts layout={world.layout} />
       <Buildings buildings={world.layout.buildings} highlights={highlights} introStart={introStart} />
       <EdgeLines arcs={arcs} dim={dim} />
       <Particles arcs={arcs} enabled={!reducedMotion && !dim} />
@@ -54,8 +37,7 @@ function World({ world }: { world: LoadedWorld }) {
       <BobProbes layout={world.layout} />
       <IncidentPath layout={world.layout} />
       <Phantoms layout={world.layout} report={report} />
-      <Annotations layout={world.layout} />
-      <HoverLabel world={world} />
+      <ProjectorBridge />
     </>
   );
 }
@@ -66,6 +48,7 @@ export function CityScene({ world }: { world: LoadedWorld }) {
   const r = world.layout.bounds.radius;
   const fogFar = useMemo(() => r * 6, [r]);
   return (
+    <>
     <Canvas
       dpr={[1, 2]}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: false }}
@@ -101,5 +84,7 @@ export function CityScene({ world }: { world: LoadedWorld }) {
         <Vignette eskil={false} offset={0.22} darkness={0.72} />
       </EffectComposer>
     </Canvas>
+    <SceneLabels world={world} />
+    </>
   );
 }

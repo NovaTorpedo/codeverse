@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "next build",
+    "build": "next build && node ../../scripts/postbuild-csp.mjs out",
     "start": "npx serve@14.2.4 out -l 3000",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

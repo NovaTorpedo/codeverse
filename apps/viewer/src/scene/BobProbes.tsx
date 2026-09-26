@@ -1,15 +1,16 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html, Trail } from '@react-three/drei';
+import { Trail } from '@react-three/drei';
 import { AdditiveBlending, Color, Mesh, Vector3 } from 'three';
 import type { CityLayout } from '../layout/cityLayout';
 import { useStore } from '../store';
 import { laneColor } from './palette';
+import { dynamicAnchors } from './projector';
 import { usePlaybackState } from './useHighlights';
 
 const HOVER = 2.2;
 
-function Probe({ layout, at, color, label, index, active }: { layout: CityLayout; at?: string; color: string; label: string; index: number; active: boolean }) {
+function Probe({ layout, at, color, laneId, index, active }: { layout: CityLayout; at?: string; color: string; laneId: string; index: number; active: boolean }) {
   const ref = useRef<Mesh>(null);
   const target = useMemo(() => new Vector3(), []);
   const home = useMemo(() => new Vector3(Math.cos(index * 1.7) * 3, 10 + index * 1.2, Math.sin(index * 1.7) * 3), [index]);
@@ -22,6 +23,7 @@ function Probe({ layout, at, color, label, index, active }: { layout: CityLayout
     else target.copy(home);
     if (reducedMotion) m.position.copy(target);
     else m.position.lerp(target, 1 - Math.pow(0.02, dt));
+    dynamicAnchors.set(`probe:${laneId}`, m.position);
     const s = active ? 1 + Math.sin(clock.elapsedTime * 6) * 0.12 : 0.6;
     m.scale.setScalar(s);
   });
@@ -35,15 +37,6 @@ function Probe({ layout, at, color, label, index, active }: { layout: CityLayout
           <sphereGeometry args={[0.7, 20, 20]} />
           <meshBasicMaterial color={color} transparent opacity={0.18} blending={AdditiveBlending} depthWrite={false} />
         </mesh>
-        {index > 0 && active && (
-          <Html position={[0, 0.9, 0]} center style={{ pointerEvents: 'none' }}>
-            <div className="label-pill" style={{ color, fontSize: 10.5, maxWidth: 200 }}>
-              <span className="truncate" style={{ display: 'inline-block', maxWidth: 190, verticalAlign: 'bottom' }}>
-                ⤷ {label}
-              </span>
-            </div>
-          </Html>
-        )}
       </mesh>
     </Trail>
   );
@@ -82,7 +75,7 @@ export function BobProbes({ layout }: { layout: CityLayout }) {
   return (
     <group>
       {pb.lanes.map((l, i) =>
-        l.kind === 'main' || l.active || l.at ? <Probe key={l.id} layout={layout} at={l.active || l.kind === 'main' ? l.at : undefined} color={laneColor(i)} label={l.label} index={i} active={l.active || (l.kind === 'main' && !pb.done)} /> : null,
+        l.kind === 'main' || l.active || l.at ? <Probe key={l.id} layout={layout} at={l.active || l.kind === 'main' ? l.at : undefined} color={laneColor(i)} laneId={l.id} index={i} active={l.active || (l.kind === 'main' && !pb.done)} /> : null,
       )}
       <ScanRings layout={layout} ids={pb.matched} />
     </group>

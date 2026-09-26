@@ -4,6 +4,7 @@ export interface LaneState {
   id: string;
   label: string;
   kind: 'main' | 'subagent';
+  subagentType?: string;
   active: boolean;
   /** Node the lane's probe is at, if any. */
   at?: string;
@@ -75,6 +76,7 @@ export function stateAt(rec: Recording, t: number): PlaybackState {
     id: l.id,
     label: l.label,
     kind: l.kind,
+    subagentType: l.subagentType,
     active: open.has(l.id) || (l.kind === 'subagent' && l.endSeq === undefined && l.startSeq <= idx),
     at: laneAt.get(l.id)?.at,
     action: laneAt.get(l.id)?.action,

@@ -132,8 +132,8 @@ export function layoutCity(graph: AnalysisGraph): CityLayout {
     const cool = 1 - iter / 420;
     for (let i = 0; i < sim.length; i++) {
       const a = sim[i]!;
-      let fx = -a.x * 0.012;
-      let fz = -a.z * 0.012;
+      let fx = -a.x * 0.04;
+      let fz = -a.z * 0.04;
       for (let j = 0; j < sim.length; j++) {
         if (i === j) continue;
         const b = sim[j]!;

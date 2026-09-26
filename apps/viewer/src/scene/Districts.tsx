@@ -1,14 +1,10 @@
-import { useMemo } from 'react';
-import { Html } from '@react-three/drei';
 import { AdditiveBlending } from 'three';
 import type { CityLayout } from '../layout/cityLayout';
 import { useStore } from '../store';
 import { hueColor } from './palette';
 
-export function Districts({ layout, showLabels }: { layout: CityLayout; showLabels: boolean }) {
+export function Districts({ layout }: { layout: CityLayout }) {
   const flyTo = useStore((s) => s.flyTo);
-  const semantic = useStore((s) => s.world?.semantic);
-  const names = useMemo(() => new Map(semantic?.services.map((s) => [s.id, s.name]) ?? []), [semantic]);
   return (
     <group>
       {layout.districts.map((d) => {
@@ -27,16 +23,6 @@ export function Districts({ layout, showLabels }: { layout: CityLayout; showLabe
               <ringGeometry args={[d.r * 0.25, d.r - 0.1, 64]} />
               <meshBasicMaterial color={c} transparent opacity={0.035} blending={AdditiveBlending} depthWrite={false} />
             </mesh>
-            {showLabels && (
-              <Html position={[0, 0.2, d.r + 0.9]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-                <div className="label-pill district">
-                  {names.get(d.id) ?? d.label}
-                  <span className="tertiary" style={{ marginLeft: 6, fontWeight: 500 }}>
-                    {d.fileCount}
-                  </span>
-                </div>
-              </Html>
-            )}
           </group>
         );
       })}

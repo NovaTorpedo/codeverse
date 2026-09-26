@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import { AdditiveBlending, Color, Group, Mesh } from 'three';
 import type { CityLayout } from '../layout/cityLayout';
 import { useStore } from '../store';
@@ -8,7 +7,6 @@ import { PALETTE } from './palette';
 
 /** API routes as glowing gateway arches at the district edge. */
 export function Gateways({ layout }: { layout: CityLayout }) {
-  const hovered = useStore((s) => s.hovered);
   const set = useStore((s) => s.set);
   const select = useStore((s) => s.select);
   return (
@@ -28,11 +26,6 @@ export function Gateways({ layout }: { layout: CityLayout }) {
             <circleGeometry args={[0.8, 32]} />
             <meshBasicMaterial color={PALETTE.teal} transparent opacity={0.12} blending={AdditiveBlending} depthWrite={false} />
           </mesh>
-          {hovered === g.id && (
-            <Html position={[0, 2.1, 0]} center style={{ pointerEvents: 'none' }}>
-              <div className="label-pill mono">{g.label}</div>
-            </Html>
-          )}
         </group>
       ))}
     </group>
@@ -63,9 +56,6 @@ export function Cores({ layout, reducedMotion }: { layout: CityLayout; reducedMo
               <icosahedronGeometry args={[1.6, 1]} />
               <meshBasicMaterial color={new Color(PALETTE.cyan).multiplyScalar(1.4)} wireframe transparent opacity={0.55} toneMapped={false} />
             </mesh>
-            <Html position={[0, 2.4, 0]} center style={{ pointerEvents: 'none' }}>
-              <div className="label-pill">◉ {c.label}</div>
-            </Html>
           </group>
           <mesh position={[c.x, c.y / 2, c.z]}>
             <cylinderGeometry args={[0.05, 0.6, c.y, 16, 1, true]} />

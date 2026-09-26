@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html, Line } from '@react-three/drei';
+import { Line } from '@react-three/drei';
 import { AdditiveBlending, Color, Group, InstancedMesh, Mesh, Object3D, TetrahedronGeometry, MeshBasicMaterial, Vector3 } from 'three';
 import type { PathStep } from '@codeverse/schema';
 import type { CityLayout, Vec3 } from '../layout/cityLayout';
@@ -147,21 +147,12 @@ export function IncidentPath({ layout }: { layout: CityLayout }) {
         const nextStep = steps[i + 1];
         const showSeg = next && i + 1 < revealed;
         const segColor = healed ? PALETTE.green : nextStep?.status === 'failed' ? PALETTE.red : nextStep?.status === 'not-reached' ? '#5b6470' : PALETTE.green;
-        const isFail = step.status === 'failed' && !healed;
         const notReached = step.status === 'not-reached' && !healed;
         return (
           <group key={step.id}>
             {showSeg && next && (Math.hypot(a.x - next.x, a.z - next.z) > 0.05 || Math.abs(a.y - next.y) > 0.05) && (
               <Line points={arcPoints(a, next, 28, 0.25)} color={segColor} lineWidth={notReached || nextStep?.status === 'not-reached' ? 1.5 : 3.2} dashed={nextStep?.status === 'not-reached' && !healed} dashSize={0.4} gapSize={0.3} toneMapped={false} transparent opacity={0.95} />
             )}
-            <Html position={[a.x, a.y + 1.3, a.z]} center zIndexRange={[40, 20]} style={{ pointerEvents: 'none' }}>
-              <div className={`label-pill ${isFail ? 'fail' : notReached ? '' : 'ok'}`} style={notReached ? { opacity: 0.55 } : undefined}>
-                <span style={{ opacity: 0.6, marginRight: 6 }}>{i + 1}</span>
-                {step.label}
-                {isFail && <span style={{ marginLeft: 8 }}>✕ {step.note ?? incident.investigation.failure.errorType}</span>}
-                {healed && step.status === 'failed' && <span style={{ marginLeft: 8 }}>✓ fixed</span>}
-              </div>
-            </Html>
           </group>
         );
       })}
