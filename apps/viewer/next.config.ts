@@ -2,7 +2,8 @@ import type { NextConfig } from 'next';
 
 const config: NextConfig = {
   output: 'export',
-  reactStrictMode: true,
+  reactStrictMode: false,
+  devIndicators: false,
   poweredByHeader: false,
   images: { unoptimized: true },
   transpilePackages: ['@codeverse/schema', '@codeverse/stream', '@codeverse/grounding'],

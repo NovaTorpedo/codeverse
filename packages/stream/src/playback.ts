@@ -52,17 +52,20 @@ export function stateAt(rec: Recording, t: number): PlaybackState {
   let matched: string[] = [];
   let toolCalls = 0;
   const open = new Set<string>(['main']);
+  const actionOf = new Map<string, RecEvent['action']>();
   for (let i = 0; i <= idx; i++) {
     const ev = rec.events[i]!;
     if (ev.type === 'tool_use') {
       toolCalls++;
-      for (const x of ev.targets) visited.add(x);
+      if (ev.action !== 'search' && ev.action !== 'list') for (const x of ev.targets) visited.add(x);
       if (ev.targets.length) laneAt.set(ev.lane, { at: ev.targets[0], action: ev.action });
-      if (ev.action === 'search' || ev.action === 'list') matched = ev.targets;
+      matched = ev.action === 'search' || ev.action === 'list' ? ev.targets : [];
+      if (ev.toolId) actionOf.set(ev.toolId, ev.action);
       if (ev.action === 'subagent' && ev.toolId) open.add(`sub:${ev.toolId}`);
     }
     if (ev.type === 'tool_result') {
-      if (ev.targets.length) matched = ev.targets;
+      const a = ev.toolId ? actionOf.get(ev.toolId) : undefined;
+      if (ev.targets.length && (a === 'search' || a === 'list')) matched = ev.targets;
       if (ev.toolId && open.has(`sub:${ev.toolId}`)) open.delete(`sub:${ev.toolId}`);
     }
     if (ev.type === 'message' && ev.role === 'assistant') reasoning = ev;
