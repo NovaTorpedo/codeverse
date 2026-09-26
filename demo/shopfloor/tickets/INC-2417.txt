@@ -1,0 +1,51 @@
+INC-2417  Checkout fails with "Something went wrong" (HTTP 500)
+Severity: SEV-2 (revenue impacting)    Status: Investigating    Service: shopfloor checkout
+Opened: 2026-09-24 14:09 UTC by Support    Release in production: 0.4.2 (0.4.0 deployed 2026-09-22)
+
+--------------------------------------------------------------------------------
+CUSTOMER REPORT (forwarded by Support, customer details removed)
+--------------------------------------------------------------------------------
+Customer: cus_2002 (business account)
+
+  "I've tried to buy the keyboard three times this afternoon and every time the
+  payment page says 'Something went wrong, please try again'. My card is fine,
+  I used it on another site five minutes ago. Nothing has been charged as far as
+  I can see. The basket still shows the item. I signed in the same way I always
+  do through our company login. Can you tell me if the order went through?"
+
+Support notes:
+  - Could not reproduce with the support test account (password login).
+  - Two more tickets since 13:40 UTC with the same message. Both business accounts.
+  - Customer's bank shows no pending authorisation.
+
+--------------------------------------------------------------------------------
+ON-CALL NOTES (chronological)
+--------------------------------------------------------------------------------
+14:12  Paged. Grafana: POST /checkout 5xx rate 0.0% -> 4.1% since ~13:30 UTC.
+       Other endpoints look normal. Login success rate normal.
+14:15  Card processor status page shows "elevated latency" for EU region.
+       Seeing psp.timeout warnings in our logs too. Could be the processor?
+14:18  But the processor retries once on timeout and the retries succeed in the
+       samples I checked. Not sure every failing request even reaches payment.
+14:21  Also seeing inventory.low_stock warnings on a couple of SKUs, and
+       notifications.smtp_degraded (email provider incident, emails are queued).
+       Don't know if any of these are related.
+14:24  Failing request from the customer's attempt: requestId 7c4be913-checkout.
+       Log excerpt for the failing window saved to
+       demo/shopfloor/logs/checkout-2026-09-24.ndjson
+       Error in the log: TypeError: Cannot read properties of null
+       (reading 'defaultCardToken'), stack goes through PaymentService.charge.
+14:27  Release 0.4.0 went out on 2026-09-22 (SSO login, checkout refactor,
+       inventory reservation changes). No deploys since 0.4.2 on 2026-09-23.
+14:30  Rollback to 0.3.x not possible: 0.4 includes a DB migration.
+14:31  Handing over. Need: root cause, which customers are affected, and a
+       minimal fix we can ship without rolling back.
+
+--------------------------------------------------------------------------------
+OPEN QUESTIONS
+--------------------------------------------------------------------------------
+  1. Is the card processor latency the cause, or a coincidence?
+  2. Why do only some customers fail? Is it the account type, the basket, or
+     how they signed in?
+  3. Are orders being lost or double-charged? (Inventory reservations appear
+     to be released on failure.)
