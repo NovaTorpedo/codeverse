@@ -192,7 +192,11 @@ function Body({ incident }: { incident: LoadedIncident }) {
               <DiffView diff={inv.fix.diff} />
               <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
                 {canVerify ? (
-                  <button className="btn primary" onClick={() => set({ stage: 'verified', healed: true })} disabled={healed}>
+                  <button className="btn primary" onClick={() => {
+                      set({ stage: 'verified', healed: true });
+                      const mid = inv.executionPath[Math.floor(inv.executionPath.length / 2)];
+                      if (mid) useStore.getState().flyTo(mid.file, 48, false);
+                    }} disabled={healed}>
                     <Icon.check /> {healed ? 'Fix verified' : 'Replay with fix applied'}
                   </button>
                 ) : (
