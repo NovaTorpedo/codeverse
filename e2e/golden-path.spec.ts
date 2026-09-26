@@ -32,7 +32,7 @@ test('golden path: city renders, incident replay reaches the failure, citations 
   await expect(page.getByRole('status').filter({ hasText: /IBM Bob|SYNTHETIC/ })).toBeVisible();
   await page.getByRole('button', { name: 'Skip to failure replay' }).click();
   await expect(page.getByText('Root cause', { exact: true })).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText(/NULL RESPONSE/).first()).toBeVisible();
+  await expect(page.locator('.label-pill.fail').first()).toBeVisible();
   await expect(page.getByLabel(/Grounding score \d+ percent/)).toBeVisible();
 
   // Citations open the code panel with the cited line highlighted
