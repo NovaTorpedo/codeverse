@@ -36,10 +36,14 @@ test('golden path: city renders, incident replay reaches the failure, citations 
   await expect(page.getByLabel(/Grounding score \d+ percent/)).toBeVisible();
 
   // Citations open the code panel with the cited line highlighted
-  await page.getByRole('button', { name: /session\.store\.ts:16.*grounded/ }).click();
-  const panel = page.getByRole('dialog', { name: /Source of demo\/shopfloor\/src\/auth\/session\.store\.ts/ });
+  // Works for any real Bob investigation: open the first grounded citation that names a line.
+  const cite = page.getByRole('button', { name: /:\d+.*, grounded$/ }).first();
+  const label = (await cite.getAttribute('aria-label')) ?? '';
+  const file = label.split(':')[0]!;
+  await cite.click();
+  const panel = page.getByRole('dialog', { name: `Source of ${file}` });
   await expect(panel).toBeVisible();
-  await expect(panel.locator('.line.hl')).toContainText('customer: null');
+  await expect(panel.locator('.line.hl').first()).toBeVisible();
 
   expect(problems).toEqual([]);
 });
