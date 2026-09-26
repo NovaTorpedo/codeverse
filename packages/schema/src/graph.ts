@@ -64,6 +64,8 @@ export const AnalysisGraph = z.object({
   }),
   nodes: z.array(GraphNode).max(LIMITS.maxNodes),
   edges: z.array(GraphEdge).max(LIMITS.maxEdges),
+  /** Non-source text files (logs, configs, docs) that claims may cite. */
+  assets: z.array(z.object({ path: RelPath, lines: z.number().int().nonnegative() })).max(5000).default([]),
   /** File contents for the code panel, keyed by repo-relative path. */
   sources: z.record(z.string(), z.string().max(400_000)).optional(),
 });

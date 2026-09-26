@@ -1,0 +1,36 @@
+{"type":"codeverse_fixture","synthetic":true,"note":"SYNTHETIC fixture shaped like IBM Bob Shell stream-json output. Not produced by IBM Bob."}
+{"type":"message","role":"user","content":"/codeverse-investigate Payment failed during checkout. Logs: @demo/shopfloor/logs/checkout-2026-09-24.ndjson","timestamp":"2026-09-26T12:00:00.000Z"}
+{"type":"message","role":"assistant","isReasoning":true,"content":"Start from the failing request in the logs, then walk the call path backwards from the stack frame.","timestamp":"2026-09-26T12:00:01.800Z"}
+{"type":"tool_use","tool_name":"use_skill","tool_id":"t01","parameters":{"skill":"codeverse-investigate"},"timestamp":"2026-09-26T12:00:02.300Z"}
+{"type":"tool_result","tool_id":"t01","status":"success","output":"Skill loaded","timestamp":"2026-09-26T12:00:02.600Z"}
+{"type":"tool_use","tool_name":"read_file","tool_id":"t02","parameters":{"path":"demo/shopfloor/logs/checkout-2026-09-24.ndjson"},"timestamp":"2026-09-26T12:00:03.100Z"}
+{"type":"tool_result","tool_id":"t02","status":"success","output":"{\"level\":\"error\",\"event\":\"http.unhandled_error\",\"requestId\":\"7c4be913-checkout\",\"error\":\"TypeError: Cannot read properties of null (reading 'defaultCardToken')\"}","timestamp":"2026-09-26T12:00:03.900Z"}
+{"type":"message","role":"assistant","isReasoning":true,"content":"The stack points at PaymentService.charge line 25. Three warnings nearby look suspicious: a PSP timeout, low stock and SMTP degradation. Split the exploration.","timestamp":"2026-09-26T12:00:05.400Z"}
+{"type":"tool_use","tool_name":"spawn_subagent","tool_id":"t03","parameters":{"subagent_type":"explore","description":"Trace how session.customer is populated for password vs SSO logins","fork_context":false},"timestamp":"2026-09-26T12:00:06.000Z"}
+{"type":"tool_use","tool_name":"grep","tool_id":"s1-01","parent_tool_id":"t03","parameters":{"pattern":"session.customer","path":"demo/shopfloor/src"},"timestamp":"2026-09-26T12:00:06.700Z"}
+{"type":"tool_result","tool_id":"s1-01","parent_tool_id":"t03","status":"success","output":"demo/shopfloor/src/auth/auth.service.ts:31:    session.customer = await this.customers.loadProfile(user.customerId);\ndemo/shopfloor/src/gateway/middleware.ts:21:  if (session.customer === undefined) {\ndemo/shopfloor/src/customer/customer.service.ts:26:    if (session.customer) return session.customer.billing;","timestamp":"2026-09-26T12:00:07.200Z"}
+{"type":"tool_use","tool_name":"read_file","tool_id":"s1-02","parent_tool_id":"t03","parameters":{"path":"demo/shopfloor/src/auth/auth.service.ts"},"timestamp":"2026-09-26T12:00:07.900Z"}
+{"type":"tool_result","tool_id":"s1-02","parent_tool_id":"t03","status":"success","output":"(file contents)","timestamp":"2026-09-26T12:00:08.300Z"}
+{"type":"tool_use","tool_name":"read_file","tool_id":"s1-03","parent_tool_id":"t03","parameters":{"path":"demo/shopfloor/src/auth/session.store.ts"},"timestamp":"2026-09-26T12:00:09.000Z"}
+{"type":"tool_result","tool_id":"s1-03","parent_tool_id":"t03","status":"success","output":"(file contents)","timestamp":"2026-09-26T12:00:09.400Z"}
+{"type":"tool_use","tool_name":"read_file","tool_id":"s1-04","parent_tool_id":"t03","parameters":{"path":"demo/shopfloor/src/gateway/middleware.ts"},"timestamp":"2026-09-26T12:00:10.100Z"}
+{"type":"tool_result","tool_id":"s1-04","parent_tool_id":"t03","status":"success","output":"(file contents)","timestamp":"2026-09-26T12:00:10.500Z"}
+{"type":"tool_result","tool_id":"t03","status":"success","output":"SSO sessions are created with customer: null and never hydrated; middleware checks === undefined.","timestamp":"2026-09-26T12:00:12.000Z"}
+{"type":"tool_use","tool_name":"spawn_subagent","tool_id":"t04","parameters":{"subagent_type":"explore","description":"Check whether the PSP timeout or low stock warnings relate to request 7c4be913","fork_context":false},"timestamp":"2026-09-26T12:00:12.600Z"}
+{"type":"tool_use","tool_name":"glob","tool_id":"s2-01","parameters":{"pattern":"demo/shopfloor/src/payment/*.ts"},"timestamp":"2026-09-26T12:00:13.100Z"}
+{"type":"tool_result","tool_id":"s2-01","status":"success","output":"demo/shopfloor/src/payment/card-gateway.client.ts\ndemo/shopfloor/src/payment/payment.service.ts","timestamp":"2026-09-26T12:00:13.400Z"}
+{"type":"tool_use","tool_name":"read_file","tool_id":"s2-02","parameters":{"path":"demo/shopfloor/src/payment/card-gateway.client.ts"},"timestamp":"2026-09-26T12:00:14.000Z"}
+{"type":"tool_result","tool_id":"s2-02","status":"success","output":"(file contents)","timestamp":"2026-09-26T12:00:14.300Z"}
+{"type":"tool_use","tool_name":"read_file","tool_id":"s2-03","parameters":{"path":"demo/shopfloor/src/inventory/inventory.service.ts"},"timestamp":"2026-09-26T12:00:15.000Z"}
+{"type":"tool_result","tool_id":"s2-03","status":"success","output":"(file contents)","timestamp":"2026-09-26T12:00:15.300Z"}
+{"type":"tool_result","tool_id":"t04","status":"success","output":"PSP timeout belongs to request a1f09c2e which succeeded on retry. Low stock is informational.","timestamp":"2026-09-26T12:00:16.500Z"}
+{"type":"tool_use","tool_name":"FindSymbol","tool_id":"t05","parameters":{"name_path":"CustomerService/getBillingProfile","relative_path":"demo/shopfloor/src/customer/customer.service.ts"},"timestamp":"2026-09-26T12:00:17.200Z"}
+{"type":"tool_result","tool_id":"t05","status":"success","output":"getBillingProfile(session: Session): BillingProfile | null","timestamp":"2026-09-26T12:00:17.600Z"}
+{"type":"tool_use","tool_name":"read_file","tool_id":"t06","parameters":{"path":"demo/shopfloor/src/payment/payment.service.ts"},"timestamp":"2026-09-26T12:00:18.300Z"}
+{"type":"tool_result","tool_id":"t06","status":"success","output":"(file contents)","timestamp":"2026-09-26T12:00:18.700Z"}
+{"type":"future_event_kind","payload":{"x":1},"timestamp":"2026-09-26T12:00:19.000Z"}
+{"type":"message","role":"assistant","isReasoning":true,"content":"Root cause confirmed: loginWithSso never loads the profile and the lazy hydration check is wrong. Writing the investigation file.","timestamp":"2026-09-26T12:00:20.500Z"}
+{"type":"tool_use","tool_name":"write_file","tool_id":"t07","parameters":{"path":".codeverse/recordings/payment-failed.investigation.json","content":"{...}"},"timestamp":"2026-09-26T12:00:22.000Z"}
+{"type":"tool_result","tool_id":"t07","status":"success","output":"Wrote file","timestamp":"2026-09-26T12:00:22.400Z"}
+{"type":"message","role":"assistant","content":"Checkout fails for SSO customers because the session's customer profile is never initialised. See .codeverse/recordings/payment-failed.investigation.json.","timestamp":"2026-09-26T12:00:23.000Z"}
+{"type":"result","status":"success","stats":{"task_id":"00000000-0000-4000-8000-000000000000","total_tokens":48210,"input_tokens":44120,"output_tokens":4090,"cache_read_tokens":30100,"cache_write_tokens":9000,"cache_ratio":0.68,"duration_ms":23000,"session_costs":1.2,"tool_calls":13},"last_message":"Checkout fails for SSO customers because the session's customer profile is never initialised.","timestamp":"2026-09-26T12:00:23.100Z"}

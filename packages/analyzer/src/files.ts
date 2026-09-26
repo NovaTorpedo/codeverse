@@ -8,6 +8,25 @@ const SKIP_DIRS = new Set([
   'private', 'bob-prompts', '.codeverse', '.vercel', '.turbo', '.bob',
 ]);
 
+export const ASSET_EXT = ['.json', '.ndjson', '.log', '.md', '.yaml', '.yml', '.txt', '.toml'];
+
+/** Lists non-source text files that claims may cite (logs, configs, docs). */
+export function listAssetFiles(dir: string, extraSkip: string[] = []): string[] {
+  const out: string[] = [];
+  const skip = new Set([...SKIP_DIRS, ...extraSkip]);
+  const walk = (d: string) => {
+    for (const name of readdirSync(d).sort()) {
+      const full = path.join(d, name);
+      const st = statSync(full);
+      if (st.isDirectory()) {
+        if (!skip.has(name) && !name.startsWith('.')) walk(full);
+      } else if (ASSET_EXT.includes(path.extname(name)) && name !== 'package-lock.json' && st.size < 2_000_000) out.push(full);
+    }
+  };
+  walk(dir);
+  return out;
+}
+
 export const toPosix = (p: string) => p.split(path.sep).join('/');
 
 /** Lists source files under `dir`, sorted, skipping build output, dependencies and local-only folders. */

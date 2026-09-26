@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "codeverse.investigation",
+  "synthetic": true,
+  "generatedBy": { "tool": "codeverse-synthetic", "client": "fixture", "mode": "codeverse-cartographer", "skill": "codeverse-investigate", "recordedAt": "SYNTHETIC" },
+  "target": "demo/shopfloor",
+  "symptom": "Payment failed during checkout",
+  "summary": "SYNTHETIC FIXTURE (not produced by IBM Bob). Checkout returns HTTP 500 for customers who signed in with SSO: the session is created without a customer profile, the gateway's lazy hydration never runs because it checks for undefined while the store initialises null, and PaymentService dereferences the null billing profile.",
+  "rootCause": {
+    "title": "Customer profile is never initialised after SSO authentication",
+    "explanation": "SYNTHETIC. loginWithSso creates a session but, unlike loginWithPassword, does not load the customer profile. The gateway middleware is meant to hydrate it lazily, but it only does so when session.customer === undefined, while SessionStore.create initialises customer to null. CustomerService.getBillingProfile therefore returns null for SSO sessions and PaymentService.charge reads defaultCardToken from null.",
+    "citations": [
+      { "file": "demo/shopfloor/src/auth/auth.service.ts", "line": 48, "symbol": "AuthService.loginWithSso" },
+      { "file": "demo/shopfloor/src/auth/session.store.ts", "line": 16, "symbol": "SessionStore.create" },
+      { "file": "demo/shopfloor/src/gateway/middleware.ts", "line": 21, "symbol": "authenticate" }
+    ]
+  },
+  "executionPath": [
+    { "id": "user", "label": "User", "file": "demo/shopfloor/src/gateway/server.ts", "line": 58, "status": "ok", "note": "POST /checkout with an SSO session cookie" },
+    { "id": "gateway", "label": "Gateway", "file": "demo/shopfloor/src/gateway/middleware.ts", "symbol": "authenticate", "line": 21, "status": "ok", "note": "Skips hydration: customer is null, not undefined" },
+    { "id": "checkout", "label": "Checkout", "file": "demo/shopfloor/src/checkout/checkout.service.ts", "symbol": "CheckoutService.placeOrder", "line": 28, "status": "ok" },
+    { "id": "payment", "label": "Payment", "file": "demo/shopfloor/src/payment/payment.service.ts", "symbol": "PaymentService.charge", "line": 24, "status": "ok" },
+    { "id": "customer", "label": "Customer", "file": "demo/shopfloor/src/customer/customer.service.ts", "symbol": "CustomerService.getBillingProfile", "line": 30, "status": "failed", "note": "NULL RESPONSE" },
+    { "id": "psp", "label": "Card gateway", "file": "demo/shopfloor/src/payment/card-gateway.client.ts", "symbol": "CardGatewayClient.charge", "status": "not-reached" }
+  ],
+  "failure": {
+    "stepId": "customer",
+    "errorType": "TypeError",
+    "message": "Cannot read properties of null (reading 'defaultCardToken')",
+    "citations": [
+      { "file": "demo/shopfloor/src/payment/payment.service.ts", "line": 25, "symbol": "PaymentService.charge" },
+      { "file": "demo/shopfloor/src/customer/customer.service.ts", "line": 30 }
+    ]
+  },
+  "evidence": [
+    { "kind": "log", "text": "customer.billing_profile_missing customerId=cus_2002 sessionMethod=sso", "citation": { "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson" } },
+    { "kind": "log", "text": "http.unhandled_error TypeError: Cannot read properties of null (reading 'defaultCardToken') at PaymentService.charge (payment.service.ts:25:31)" },
+    { "kind": "test", "text": "checkout > confirms an order for an SSO-authenticated customer: expected 500 to be 201", "citation": { "file": "demo/shopfloor/test/checkout.test.ts", "line": 38 } }
+  ],
+  "ruledOut": [
+    { "hypothesis": "Card processor timeout", "reason": "SYNTHETIC. psp.timeout belongs to request a1f09c2e and that charge succeeded on retry; the failing request never reached the processor.", "citations": [{ "file": "demo/shopfloor/src/payment/card-gateway.client.ts", "line": 29 }] },
+    { "hypothesis": "Low stock on sku_mse_02", "reason": "SYNTHETIC. Reservation succeeded; the warning is informational.", "citations": [{ "file": "demo/shopfloor/src/inventory/inventory.service.ts", "line": 23 }] },
+    { "hypothesis": "Stale billing cache", "reason": "SYNTHETIC phantom citation used to exercise the unverified state.", "citations": [{ "file": "demo/shopfloor/src/payment/billing.cache.ts", "line": 12 }] }
+  ],
+  "fix": {
+    "summary": "SYNTHETIC. Hydrate the profile in loginWithSso, treat null as not-hydrated in the middleware, and fail with a typed error instead of a null dereference.",
+    "diff": "--- a/demo/shopfloor/src/auth/auth.service.ts\n+++ b/demo/shopfloor/src/auth/auth.service.ts\n@@ -46,6 +46,8 @@\n     const session = this.sessions.create({ userId: user.id, customerId: user.customerId, method: 'sso' });\n+    session.customer = await this.customers.loadProfile(user.customerId);\n+    this.sessions.save(session);\n     log.info('auth.login_succeeded', { requestId, method: 'sso', userId: user.id, sessionId: session.id });\n     return session;\n--- a/demo/shopfloor/src/gateway/middleware.ts\n+++ b/demo/shopfloor/src/gateway/middleware.ts\n@@ -20,3 +20,3 @@\n   const session = auth.resolveSession(readSessionCookie(req));\n-  if (session.customer === undefined) {\n+  if (session.customer == null) {\n     session.customer = await customers.loadProfile(session.customerId);\n",
+    "files": ["demo/shopfloor/src/auth/auth.service.ts", "demo/shopfloor/src/gateway/middleware.ts"],
+    "testsToRun": ["npm run test:demo"]
+  },
+  "verification": { "status": "pending" }
+}

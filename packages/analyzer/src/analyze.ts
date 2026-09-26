@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { SCHEMA_VERSION, type AnalysisGraph, type GraphEdge, type GraphNode } from '@codeverse/schema';
-import { countLoc, listSourceFiles, readText, SOURCE_EXT, toPosix } from './files';
+import { countLoc, listAssetFiles, listSourceFiles, readText, SOURCE_EXT, toPosix } from './files';
 import { parseSource, type ParsedFile } from './parse';
 
 export const ANALYZER_VERSION = '0.3.0';
@@ -206,6 +206,7 @@ export function analyze(opts: AnalyzeOptions): AnalysisGraph {
     project: { name: opts.name ?? path.basename(targetAbs), root: target, analyzerVersion: ANALYZER_VERSION, fileCount: files.length, loc: totalLoc },
     nodes: sortedNodes,
     edges: sortedEdges,
+    assets: listAssetFiles(targetAbs, opts.skip).map((abs) => ({ path: rel(abs), lines: readText(abs).split('\n').length })),
     sources: opts.includeSources === false ? undefined : sources,
   };
 }

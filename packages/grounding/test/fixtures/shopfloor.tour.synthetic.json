@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "codeverse.tour",
+  "synthetic": true,
+  "generatedBy": { "tool": "codeverse-synthetic", "client": "fixture", "skill": "codeverse-tour", "recordedAt": "SYNTHETIC" },
+  "target": "demo/shopfloor",
+  "title": "SYNTHETIC: Shopfloor in five stops",
+  "estimatedMinutes": 6,
+  "waypoints": [
+    { "id": "w1", "node": "svc:gateway", "title": "The front door", "narration": "SYNTHETIC. Every request enters through the gateway router.", "notice": ["Five routes", "Session middleware"], "related": [{ "file": "demo/shopfloor/src/gateway/server.ts", "line": 40 }] },
+    { "id": "w2", "node": "demo/shopfloor/src/auth/auth.service.ts", "title": "Two ways to sign in", "narration": "SYNTHETIC. Password and SSO logins create sessions differently.", "notice": ["Compare the two login methods"], "related": [{ "file": "demo/shopfloor/src/auth/auth.service.ts", "line": 41 }] },
+    { "id": "w3", "node": "demo/shopfloor/src/checkout/checkout.service.ts", "title": "The orchestrator", "narration": "SYNTHETIC. Checkout reserves stock, charges, confirms and compensates.", "notice": [], "related": [] },
+    { "id": "w4", "node": "demo/shopfloor/src/payment/payment.service.ts", "title": "Money moves", "narration": "SYNTHETIC. Payment looks up billing details and calls the processor.", "notice": [], "related": [] },
+    { "id": "w5", "node": "db:demo/shopfloor/src/db/client.ts", "title": "The knowledge core", "narration": "SYNTHETIC. One datastore holds users, profiles and stock.", "notice": [], "related": [] }
+  ]
+}

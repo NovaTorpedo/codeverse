@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "codeverse.semantic",
+  "synthetic": true,
+  "generatedBy": { "tool": "codeverse-synthetic", "client": "fixture", "mode": "codeverse-cartographer", "skill": "codeverse-scan", "recordedAt": "SYNTHETIC" },
+  "target": "demo/shopfloor",
+  "summary": "SYNTHETIC FIXTURE (not produced by IBM Bob). Shopfloor is an in-process checkout system: a gateway routes requests to auth, cart and checkout; checkout orchestrates inventory, payment and notifications; customer profiles and stock live in a shared datastore.",
+  "services": [
+    { "id": "svc:gateway", "name": "Gateway", "responsibility": "SYNTHETIC. Routes HTTP requests, assigns request ids and resolves sessions.", "citations": [{ "file": "demo/shopfloor/src/gateway/server.ts", "line": 40 }] },
+    { "id": "svc:auth", "name": "Auth", "responsibility": "SYNTHETIC. Password and SSO login, session lifecycle.", "citations": [{ "file": "demo/shopfloor/src/auth/auth.service.ts", "line": 17, "symbol": "AuthService" }] },
+    { "id": "svc:customer", "name": "Customer", "responsibility": "SYNTHETIC. Loads and caches customer profiles and billing details.", "citations": [{ "file": "demo/shopfloor/src/customer/customer.service.ts", "symbol": "CustomerService" }] },
+    { "id": "svc:payment", "name": "Payment", "responsibility": "SYNTHETIC. Charges the customer's default card through the card processor.", "citations": [{ "file": "demo/shopfloor/src/payment/payment.service.ts", "symbol": "PaymentService.charge" }] },
+    { "id": "svc:checkout", "name": "Checkout", "responsibility": "SYNTHETIC. Orchestrates reserve, charge, confirm and compensation.", "citations": [{ "file": "demo/shopfloor/src/checkout/checkout.service.ts", "symbol": "CheckoutService.placeOrder" }] },
+    { "id": "svc:ledger", "name": "Ledger", "responsibility": "SYNTHETIC phantom service used to exercise the unverified state.", "citations": [{ "file": "demo/shopfloor/src/ledger/ledger.service.ts" }] }
+  ],
+  "entryPoints": [
+    { "file": "demo/shopfloor/src/gateway/server.ts", "symbol": "createShopfloor", "description": "SYNTHETIC. Wires all services and exposes handle(req).", "citations": [{ "file": "demo/shopfloor/src/gateway/server.ts", "symbol": "createShopfloor" }] }
+  ],
+  "dataFlows": [
+    {
+      "id": "checkout",
+      "name": "Checkout",
+      "description": "SYNTHETIC. From POST /checkout to a confirmed order.",
+      "steps": [
+        { "from": "demo/shopfloor/src/gateway/server.ts", "to": "demo/shopfloor/src/checkout/checkout.service.ts", "via": "placeOrder", "citation": { "file": "demo/shopfloor/src/gateway/server.ts", "line": 60 } },
+        { "from": "demo/shopfloor/src/checkout/checkout.service.ts", "to": "demo/shopfloor/src/payment/payment.service.ts", "via": "PaymentService.charge", "citation": { "file": "demo/shopfloor/src/checkout/checkout.service.ts", "line": 28 } },
+        { "from": "demo/shopfloor/src/payment/payment.service.ts", "to": "demo/shopfloor/src/customer/customer.service.ts", "via": "CustomerService.getBillingProfile", "citation": { "file": "demo/shopfloor/src/payment/payment.service.ts", "line": 24 } }
+      ]
+    }
+  ]
+}
