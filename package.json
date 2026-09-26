@@ -29,7 +29,8 @@
     "scrub": "tsx packages/scrubber/src/cli.ts",
     "ground": "tsx packages/grounding/src/cli.ts",
     "prepare": "git config core.hooksPath .githooks || true",
-    "test:demo": "npm test -w @codeverse/shopfloor"
+    "test:demo": "npm test -w @codeverse/shopfloor",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run guard"
   },
   "devDependencies": {
     "@codeverse/analyzer": "*",

@@ -36,7 +36,7 @@ export function clampTurns(v: number | undefined): number {
 /** Removes control characters and caps length; the result is only ever sent over stdin. */
 export function sanitizePrompt(text: unknown): string {
   const s = typeof text === 'string' ? text : '';
-  // eslint-disable-next-line no-control-regex
+   
   return s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, HARD_LIMITS.promptChars);
 }
 

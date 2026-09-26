@@ -42,10 +42,12 @@ export interface RunOptions extends BobArgsInput {
   bob?: BobCommand;
 }
 
+export type RunEndReason = 'exit' | 'timeout' | 'cancelled' | 'turn-cap';
+
 export interface RunHandle {
   child: ChildProcess;
   cancel: () => void;
-  done: Promise<{ exitCode: number | null; reason: 'exit' | 'timeout' | 'cancelled' | 'turn-cap' }>;
+  done: Promise<{ exitCode: number | null; reason: RunEndReason }>;
 }
 
 export function killTree(child: ChildProcess): void {
@@ -75,7 +77,7 @@ export function runBob(opts: RunOptions): RunHandle {
     env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
   });
   const maxTurns = clampTurns(opts.maxTurns);
-  let reason: 'exit' | 'timeout' | 'cancelled' | 'turn-cap' = 'exit';
+  const state: { reason: RunEndReason } = { reason: 'exit' };
   let assistantTurns = 0;
   const splitter = new LineSplitter();
   const onLine = (line: string) => {
@@ -85,8 +87,8 @@ export function runBob(opts: RunOptions): RunHandle {
     const ev = parsed.value;
     if (ev.type === 'message' && ev.role === 'assistant' && ev.isReasoning !== true) assistantTurns++;
     opts.onEvent(ev);
-    if (assistantTurns > maxTurns + 2 && reason === 'exit') {
-      reason = 'turn-cap';
+    if (assistantTurns > maxTurns + 2 && state.reason === 'exit') {
+      state.reason = 'turn-cap';
       killTree(child);
     }
   };
@@ -96,14 +98,14 @@ export function runBob(opts: RunOptions): RunHandle {
   child.stderr!.on('data', (t: string) => opts.onStderr?.(t.slice(0, 2000)));
   child.stdin!.end(opts.prompt);
   const timer = setTimeout(() => {
-    reason = 'timeout';
+    state.reason = 'timeout';
     killTree(child);
   }, Math.min(opts.timeoutMs ?? HARD_LIMITS.timeoutMs, HARD_LIMITS.timeoutMs));
-  const done = new Promise<{ exitCode: number | null; reason: typeof reason }>((resolve) => {
+  const done = new Promise<{ exitCode: number | null; reason: RunEndReason }>((resolve) => {
     const finish = (code: number | null) => {
       clearTimeout(timer);
       splitter.flush().forEach(onLine);
-      raw.end(() => resolve({ exitCode: code, reason }));
+      raw.end(() => resolve({ exitCode: code, reason: state.reason }));
     };
     child.on('close', finish);
     child.on('error', (err) => {
@@ -115,7 +117,7 @@ export function runBob(opts: RunOptions): RunHandle {
     child,
     done,
     cancel: () => {
-      reason = 'cancelled';
+      state.reason = 'cancelled';
       killTree(child);
     },
   };
