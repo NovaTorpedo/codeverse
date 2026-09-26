@@ -1,0 +1,5 @@
+#!/bin/sh
+node scripts/guard.mjs --staged || exit 1
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --config .gitleaks.toml --no-banner || exit 1
+fi

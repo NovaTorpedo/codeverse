@@ -1,0 +1,42 @@
+{
+  "name": "codeverse",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "demo/*"
+  ],
+  "scripts": {
+    "dev": "npm run data && npm run dev -w @codeverse/viewer",
+    "data": "tsx scripts/build-data.ts",
+    "build": "npm run data && npm run check:public && npm run build -w @codeverse/viewer",
+    "build:preview": "npm run data && npm run build -w @codeverse/viewer",
+    "check:public": "tsx scripts/check-public-data.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck -w @codeverse/viewer",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "guard": "node scripts/guard.mjs --all",
+    "secrets": "node scripts/secret-scan.mjs --history",
+    "bridge": "tsx packages/bridge/src/cli.ts",
+    "analyze": "tsx packages/analyzer/src/cli.ts",
+    "scrub": "tsx packages/scrubber/src/cli.ts",
+    "ground": "tsx packages/grounding/src/cli.ts",
+    "prepare": "git config core.hooksPath .githooks || true"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "20.19.43",
+    "eslint": "10.11.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.1",
+    "vitest": "4.1.11"
+  }
+}

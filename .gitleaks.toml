@@ -1,0 +1,29 @@
+title = "codeverse gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "ibm-cloud-api-key"
+description = "IBM Cloud API key"
+regex = '''(?i)(?:ibm[_-]?cloud[_-]?)?api[_-]?key["'\s]*[:=]\s*["']?([A-Za-z0-9_-]{40,48})'''
+secretGroup = 1
+keywords = ["apikey", "api_key", "api-key"]
+
+[[rules]]
+id = "ibm-iam-token"
+description = "IBM IAM bearer token (JWT)"
+regex = '''eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{8,}'''
+keywords = ["eyj"]
+
+[[rules]]
+id = "bob-api-key"
+description = "IBM Bob API key assignment"
+regex = '''BOB_API_KEY\s*[:=]\s*["']?([A-Za-z0-9_\-.]{12,})'''
+secretGroup = 1
+keywords = ["bob_api_key"]
+
+[allowlist]
+description = "placeholders"
+regexes = ['''your-api-key-here''', '''secret-scan:allow''']
+paths = ['''package-lock\.json''']
