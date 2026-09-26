@@ -11,7 +11,7 @@ IBM Bob is the engine. A CodeVerse custom mode, skills and slash commands (in [`
 
 ## Run it
 
-Requires Node.js 20.9 or later.
+Requires Node.js 24 (see `.nvmrc`), the same version IBM Bob Shell needs.
 
 ```bash
 npm install
