@@ -15,7 +15,7 @@
   "scripts": {
     "dev": "npm run data && npm run dev -w @codeverse/viewer",
     "data": "tsx scripts/build-data.ts",
-    "build": "npm run data && npm run check:public && npm run build -w @codeverse/viewer",
+    "build": "npm run data -- --public && npm run check:public && npm run build -w @codeverse/viewer",
     "build:preview": "npm run data && npm run build -w @codeverse/viewer",
     "check:public": "tsx scripts/check-public-data.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck -w @codeverse/viewer",
