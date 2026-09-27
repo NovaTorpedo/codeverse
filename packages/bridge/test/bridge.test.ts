@@ -1,9 +1,10 @@
-import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, truncateSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
-import { buildBobArgs, buildPrompt, clampCost, clampTurns, confineWorkspace, HARD_LIMITS, isCommand, newToken, originAllowed, sanitizePrompt, tokensEqual } from '../src/guards';
+import { buildBobArgs, buildPrompt, clampCost, clampTurns, confineWorkspace, HARD_LIMITS, isCommand, newToken, originAllowed, readFileCapped, sanitizePrompt, tokensEqual } from '../src/guards';
+import { LIMITS } from '@codeverse/schema';
 import { runBob, type BobCommand } from '../src/runner';
 import { startBridge } from '../src/server';
 
@@ -78,6 +79,27 @@ describe('guards', () => {
     expect(sanitizePrompt('a\u0000b\u001bc\nd')).toBe('abc\nd');
     expect(sanitizePrompt('x'.repeat(5000)).length).toBe(HARD_LIMITS.promptChars);
     expect(sanitizePrompt({ evil: true })).toBe('');
+  });
+});
+
+describe('readFileCapped (size checked before reading)', () => {
+  it('refuses a file over the cap without reading it, and reads one at the cap', () => {
+    const tmp = mkdtempSync(path.join(os.tmpdir(), 'cv-cap-'));
+    try {
+      const huge = path.join(tmp, 'huge.json');
+      writeFileSync(huge, '');
+      truncateSync(huge, 64 * 1024 * 1024); // 64 MB, never allocated or read
+      const before = process.memoryUsage().arrayBuffers;
+      const r = readFileCapped(huge, LIMITS.maxBytes);
+      expect(r).toEqual({ ok: false, reason: 'too-large', size: 64 * 1024 * 1024 });
+      expect(process.memoryUsage().arrayBuffers - before).toBeLessThan(1024 * 1024);
+      const small = path.join(tmp, 'small.json');
+      writeFileSync(small, '{"a":"é"}');
+      expect(readFileCapped(small, 10)).toEqual({ ok: true, text: '{"a":"é"}' });
+      expect(readFileCapped(small, 9)).toMatchObject({ ok: false, reason: 'too-large' });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });
 
@@ -308,5 +330,27 @@ describe('bridge server', () => {
     rmSync(path.join(dir, 'test-valid.synthetic.json'), { force: true });
     rmSync(path.join(dir, 'test-invalid.synthetic.json'), { force: true });
     ws.close();
+  });
+
+  it('reports a huge recordings file as too large instead of reading it', async () => {
+    const ws = await connect(['codeverse.v1', `token.${token}`]);
+    const got = new Promise<{ type: string; [k: string]: unknown }>((resolve) => {
+      ws.on('message', (d) => {
+        const m = JSON.parse(d.toString());
+        if (m.type !== 'hello') resolve(m);
+      });
+    });
+    const file = path.join(repoRoot, '.codeverse', 'recordings', 'test-huge.synthetic.json');
+    await new Promise((r) => setTimeout(r, 100));
+    writeFileSync(file, '');
+    truncateSync(file, LIMITS.maxBytes + 1024 * 1024);
+    try {
+      const m = await got;
+      expect(m.type).toBe('error');
+      expect(String(m.message)).toMatch(/test-huge\.synthetic\.json: larger than 15 MB/);
+    } finally {
+      rmSync(file, { force: true });
+      ws.close();
+    }
   });
 });

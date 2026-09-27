@@ -1,9 +1,9 @@
 import { createServer, type IncomingMessage } from 'node:http';
-import { mkdirSync, readFileSync, watch, type FSWatcher } from 'node:fs';
+import { mkdirSync, watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { LIMITS, parseDocument } from '@codeverse/schema';
-import { buildPrompt, confineWorkspace, isCommand, originAllowed, sanitizePrompt, tokensEqual } from './guards';
+import { buildPrompt, confineWorkspace, isCommand, originAllowed, readFileCapped, sanitizePrompt, tokensEqual } from './guards';
 import { runBob, type BobCommand, type RunHandle } from './runner';
 
 export interface BridgeOptions {
@@ -118,8 +118,14 @@ export function startBridge(opts: BridgeOptions) {
       setTimeout(() => {
         const file = path.join(recordingsDir, path.basename(name));
         try {
+          // Size is checked on the open file before reading, and the read is bounded (readFileCapped).
+          const read = readFileCapped(file, LIMITS.maxBytes);
+          if (!read.ok) {
+            if (read.reason === 'too-large') broadcast({ type: 'error', message: `${path.basename(name)}: larger than ${LIMITS.maxBytes / 1024 / 1024} MB, not loaded` });
+            return; // 'changed': still being written; the next watch event re-reads it
+          }
+          const text = read.text;
           // Read first, then check size — avoids a TOCTOU race between statSync and readFileSync.
-          const text = readFileSync(file, 'utf8');
           if (Buffer.byteLength(text, 'utf8') > LIMITS.maxBytes) return;
           const parsed = parseDocument(text);
           if (!parsed.ok) {

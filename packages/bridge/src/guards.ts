@@ -1,5 +1,5 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { realpathSync } from 'node:fs';
+import { closeSync, fstatSync, openSync, readSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 
 export const HARD_LIMITS = { maxCost: 3, maxTurns: 40, timeoutMs: 15 * 60 * 1000, promptChars: 2000, rawFileMaxBytes: 50 * 1024 * 1024 } as const;
@@ -109,4 +109,30 @@ export function buildBobArgs(input: BobArgsInput): string[] {
     DISABLED_TOOL_GROUPS.join(','),
     '--disable-mcp',
   ];
+}
+
+export type CappedRead = { ok: true; text: string } | { ok: false; reason: 'too-large' | 'changed'; size: number };
+
+/**
+ * Reads a UTF-8 file only if it is at most `maxBytes`. The size is checked on the open descriptor before
+ * anything is read (no path race between the check and the read), and the read itself stops at size + 1
+ * bytes, so a file that grows after the check is reported as `changed` instead of being read unbounded.
+ */
+export function readFileCapped(file: string, maxBytes: number): CappedRead {
+  const fd = openSync(file, 'r');
+  try {
+    const size = fstatSync(fd).size;
+    if (size > maxBytes) return { ok: false, reason: 'too-large', size };
+    const buf = Buffer.alloc(size + 1);
+    let total = 0;
+    while (total < buf.length) {
+      const n = readSync(fd, buf, total, buf.length - total, null);
+      if (n === 0) break;
+      total += n;
+    }
+    if (total > size) return { ok: false, reason: 'changed', size: total };
+    return { ok: true, text: buf.subarray(0, total).toString('utf8') };
+  } finally {
+    closeSync(fd);
+  }
 }
