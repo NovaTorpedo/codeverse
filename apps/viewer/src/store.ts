@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { AnalysisGraph, Investigation, Recording, SemanticLayer, Tour, WorldEntry, WorldIndex } from '@codeverse/schema';
 import type { GroundingReport } from '@codeverse/grounding';
 import type { CityLayout } from './layout/cityLayout';
+import { resolveNodeId } from './nodeIds';
 
 export type Mode = 'explore' | 'incident' | 'tour';
 export type IncidentStage = 'investigate' | 'replay' | 'explain' | 'fix' | 'verified';
@@ -87,7 +88,11 @@ export const useStore = create<State>((set, get) => ({
   helpOpen: false,
   set: (p) => set(p),
   select: (id) => set({ selected: id }),
-  flyTo: (id, distance, select = true) => set({ focus: { id, nonce: (get().focus?.nonce ?? 0) + 1, distance }, ...(select ? { selected: id } : {}) }),
+  flyTo: (raw, distance, select = true) => {
+    const nodes = get().world?.graph.nodes;
+    const id = nodes ? resolveNodeId(new Set(nodes.map((n) => n.id)), raw) : raw;
+    set({ focus: { id, nonce: (get().focus?.nonce ?? 0) + 1, distance }, ...(select ? { selected: id } : {}) });
+  },
   openCode: (c) => set({ code: c }),
   notify: (text, tone = 'info') => set({ toast: { text, tone, nonce: (get().toast?.nonce ?? 0) + 1 } }),
   startPlayback: (recording, opts = {}) =>
