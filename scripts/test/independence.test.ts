@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 // The Phase 2 prompts folder is disposable: nothing may import, read or build from it.
 const ALLOWED_MENTIONS = new Set(['.gitignore', '.bobignore', 'eslint.config.js', 'scripts/guard.mjs', 'scripts/test/independence.test.ts', 'scripts/verify-disposable.mjs']);
+// Agent guidance (AGENTS.md, .bob/ Markdown) may name the folder in "never read" rules; that is not a dependency.
+const GUIDANCE = /^(AGENTS\.md|\.bob\/.+\.md)$/;
 const FOLDER = ['bob', 'prompts'].join('-');
 
 function trackedAndUntracked(): string[] {
@@ -14,7 +16,7 @@ function trackedAndUntracked(): string[] {
 describe('disposable prompts folder', () => {
   it('is not referenced by any project file', () => {
     const offenders = trackedAndUntracked().filter((f) => {
-      if (ALLOWED_MENTIONS.has(f) || /\.(png|jpe?g|ico|woff2?)$/i.test(f)) return false;
+      if (ALLOWED_MENTIONS.has(f) || GUIDANCE.test(f) || /\.(png|jpe?g|ico|woff2?)$/i.test(f)) return false;
       try {
         return readFileSync(f, 'utf8').includes(FOLDER);
       } catch {
