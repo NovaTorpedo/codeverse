@@ -54,6 +54,9 @@ export function stateAt(rec: Recording, t: number): PlaybackState {
   let toolCalls = 0;
   const open = new Set<string>(['main']);
   const actionOf = new Map<string, RecEvent['action']>();
+  // A subagent's own result names the files it examined; its probe heads there while it works.
+  const resultTargets = new Map<string, string[]>();
+  for (const ev of rec.events) if (ev.type === 'tool_result' && ev.toolId && ev.targets.length && !resultTargets.has(ev.toolId)) resultTargets.set(ev.toolId, ev.targets);
   for (let i = 0; i <= idx; i++) {
     const ev = rec.events[i]!;
     if (ev.type === 'tool_use') {
@@ -62,7 +65,11 @@ export function stateAt(rec: Recording, t: number): PlaybackState {
       if (ev.targets.length) laneAt.set(ev.lane, { at: ev.targets[0], action: ev.action });
       matched = ev.action === 'search' || ev.action === 'list' ? ev.targets : [];
       if (ev.toolId) actionOf.set(ev.toolId, ev.action);
-      if (ev.action === 'subagent' && ev.toolId) open.add(`sub:${ev.toolId}`);
+      if (ev.action === 'subagent' && ev.toolId) {
+        open.add(`sub:${ev.toolId}`);
+        const dest = resultTargets.get(ev.toolId)?.[0];
+        if (dest) laneAt.set(`sub:${ev.toolId}`, { at: dest, action: 'subagent' });
+      }
     }
     if (ev.type === 'tool_result') {
       const a = ev.toolId ? actionOf.get(ev.toolId) : undefined;

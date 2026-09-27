@@ -135,3 +135,31 @@ describe('playback', () => {
     expect(labels.at(-1)).toBe('Finished · success');
   });
 });
+
+describe('subagent probes', () => {
+  it("send a working subagent's probe to the first file its own result names", () => {
+    const rec = Recording.parse({
+      schemaVersion: 1,
+      kind: 'codeverse.recording',
+      id: 'sub-test',
+      title: 't',
+      synthetic: true,
+      scrubbed: true,
+      source: 'fixture',
+      recordedAt: '2026-09-27T00:00:00Z',
+      target: 'demo/shopfloor',
+      lanes: [
+        { id: 'main', label: 'Bob', kind: 'main', startSeq: 0 },
+        { id: 'sub:t1', label: 'Investigate payment', kind: 'subagent', startSeq: 0, endSeq: 1 },
+      ],
+      events: [
+        { seq: 0, t: 0, type: 'tool_use', lane: 'main', toolId: 't1', action: 'subagent', targets: [] },
+        { seq: 1, t: 10, type: 'tool_result', lane: 'main', toolId: 't1', status: 'success', targets: ['demo/shopfloor/src/payment/payment.service.ts'] },
+      ],
+    });
+    const working = stateAt(rec, 0).lanes.find((l) => l.id === 'sub:t1')!;
+    expect(working.active).toBe(true);
+    expect(working.at).toBe('demo/shopfloor/src/payment/payment.service.ts');
+    expect(stateAt(rec, 10).lanes.find((l) => l.id === 'sub:t1')!.active).toBe(false);
+  });
+});
