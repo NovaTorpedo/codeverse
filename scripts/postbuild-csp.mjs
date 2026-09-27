@@ -1,63 +1,87 @@
 #!/usr/bin/env node
 // After `next build` (static export): hash every inline <script>, add a strict CSP <meta> to each page,
-// and write out/_headers (Cloudflare Pages / local preview) with the full header set.
+// write out/_headers (local preview, Cloudflare Pages) and keep render.yaml's CSP in step with the build.
+//
+// Render serves headers from render.yaml, which is committed, so its CSP carries the script hashes of the
+// committed source (`npm run render:headers` refreshes them; the build id is pinned so they stay stable).
+// If a build ever produces different inline scripts than render.yaml allows (a different OS or toolchain),
+// the inline scripts are moved into same-origin files instead, which the header's 'self' still allows:
+// the site keeps working under the same strict policy and never needs 'unsafe-inline'.
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { buildCsp, CACHE_RULES, metaCsp, parseRenderHeaders, RENDER_BEGIN, RENDER_END, renderHeaderBlock, scriptHashesIn, SECURITY_HEADERS } from './security-headers.mjs';
 
-const out = path.resolve(process.argv[2] ?? 'apps/viewer/out');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const out = path.resolve(process.argv[2] ?? path.join(repoRoot, 'apps/viewer/out'));
+const renderFile = path.join(repoRoot, 'render.yaml');
+const syncRender = process.env.CODEVERSE_RENDER_SYNC === '1';
+const forceExternal = process.env.CODEVERSE_CSP_EXTERNAL === '1';
+
 const walk = (d) => readdirSync(d).flatMap((n) => (statSync(path.join(d, n)).isDirectory() ? walk(path.join(d, n)) : [path.join(d, n)]));
 const pages = walk(out).filter((f) => f.endsWith('.html'));
+const INLINE = /<script(?![^>]*\bsrc=)([^>]*)>([\s\S]*?)<\/script>/g;
+const sha = (s, enc) => createHash('sha256').update(s, 'utf8').digest(enc);
 
 const hashes = new Set();
 for (const file of pages) {
-  const html = readFileSync(file, 'utf8');
-  for (const m of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
-    hashes.add(`'sha256-${createHash('sha256').update(m[1], 'utf8').digest('base64')}'`);
+  for (const m of readFileSync(file, 'utf8').matchAll(INLINE)) if (m[2]) hashes.add(`'sha256-${sha(m[2], 'base64')}'`);
+}
+const built = [...hashes].sort();
+
+let external = forceExternal;
+if (syncRender) {
+  const yaml = readFileSync(renderFile, 'utf8');
+  const start = yaml.indexOf(RENDER_BEGIN);
+  const end = yaml.indexOf(RENDER_END);
+  if (start < 0 || end < start) throw new Error('render.yaml: generated header markers not found');
+  const lineStart = yaml.lastIndexOf('\n', start) + 1;
+  const indent = yaml.slice(lineStart, start);
+  writeFileSync(renderFile, yaml.slice(0, lineStart) + renderHeaderBlock(built, indent) + yaml.slice(end + RENDER_END.length));
+  console.log(`[csp] render.yaml headers updated (${built.length} script hash(es))`);
+} else if (existsSync(renderFile)) {
+  const cspHeader = parseRenderHeaders(readFileSync(renderFile, 'utf8')).find((h) => h.name === 'Content-Security-Policy');
+  const allowed = new Set(cspHeader ? scriptHashesIn(cspHeader.value) : []);
+  if (!built.every((h) => allowed.has(h))) {
+    external = true;
+    console.warn('[csp] this build has inline scripts render.yaml does not list: moving them to same-origin files (run `npm run render:headers` to refresh the hashes)');
   }
 }
 
-// three.js and React need neither eval nor inline scripts beyond the hashed Next bootstrap.
-// Inline styles are required by framer-motion and drei <Html> positioning.
-const directives = {
-  'default-src': ["'self'"],
-  'script-src': ["'self'", ...hashes],
-  'style-src': ["'self'", "'unsafe-inline'"],
-  'img-src': ["'self'", 'data:', 'blob:'],
-  'font-src': ["'self'", 'data:'],
-  'connect-src': ["'self'"],
-  'worker-src': ["'self'", 'blob:'],
-  'object-src': ["'none'"],
-  'base-uri': ["'none'"],
-  'form-action': ["'none'"],
-  'frame-ancestors': ["'none'"],
-};
-const csp = Object.entries(directives)
-  .map(([k, v]) => `${k} ${v.join(' ')}`)
-  .join('; ');
-const metaCsp = csp.replace(/; frame-ancestors [^;]+/, '');
+let moved = 0;
+if (external) {
+  const dir = path.join(out, '_next', 'static', 'inline');
+  mkdirSync(dir, { recursive: true });
+  for (const file of pages) {
+    const html = readFileSync(file, 'utf8').replace(INLINE, (_all, attrs, body) => {
+      if (!body) return _all;
+      const name = `${sha(body, 'hex').slice(0, 20)}.js`;
+      writeFileSync(path.join(dir, name), body);
+      moved++;
+      return `<script${attrs} src="/_next/static/inline/${name}"></script>`;
+    });
+    writeFileSync(file, html);
+  }
+}
+const scriptHashes = external ? [] : built;
 
 for (const file of pages) {
   let html = readFileSync(file, 'utf8');
   html = html.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/, '');
-  html = html.replace(/<head>/, `<head><meta http-equiv="Content-Security-Policy" content="${metaCsp}">`);
+  html = html.replace(/<head>/, `<head><meta http-equiv="Content-Security-Policy" content="${metaCsp(scriptHashes)}">`);
   writeFileSync(file, html);
 }
 
-export const HEADERS = {
-  'Content-Security-Policy': csp,
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
-  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
-  'Cross-Origin-Opener-Policy': 'same-origin',
-  'Cross-Origin-Resource-Policy': 'same-origin',
-};
-writeFileSync(
-  path.join(out, '_headers'),
-  `/*\n${Object.entries(HEADERS)
-    .map(([k, v]) => `  ${k}: ${v}`)
-    .join('\n')}\n`,
+const headerLines = [
+  '/*',
+  `  Content-Security-Policy: ${buildCsp(scriptHashes)}`,
+  ...Object.entries(SECURITY_HEADERS).map(([k, v]) => `  ${k}: ${v}`),
+  ...CACHE_RULES.flatMap((r) => [r.path, `  Cache-Control: ${r.value}`]),
+];
+writeFileSync(path.join(out, '_headers'), `${headerLines.join('\n')}\n`);
+console.log(
+  `[csp] ${pages.length} page(s), ${built.length} inline script hash(es)` +
+    (external ? `, ${moved} inline script(s) moved to same-origin files` : ', all listed in render.yaml') +
+    `; wrote meta CSP and ${path.relative(process.cwd(), path.join(out, '_headers'))}`,
 );
-console.log(`[csp] ${pages.length} page(s), ${hashes.size} inline script hash(es); wrote meta CSP and ${path.relative(process.cwd(), path.join(out, '_headers'))}`);

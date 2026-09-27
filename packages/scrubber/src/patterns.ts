@@ -13,6 +13,9 @@ export const SECRET_PATTERNS: Array<{ id: string; re: RegExp }> = [
   { id: 'slack-token', re: /\bxox[abprs]-[A-Za-z0-9-]{10,}\b/g },
   { id: 'llm-provider-key', re: /\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{24,}\b/g },
   { id: 'google-api-key', re: /\bAIza[0-9A-Za-z_-]{35}\b/g },
+  // AssemblyAI keys are 32 hex characters; flag them next to their name or an Authorization header.
+  { id: 'assemblyai-api-key', re: /\bassembly[_-]?ai[\w-]*["'\s]*[:=]\s*["']?[a-f0-9]{32}\b/gi },
+  { id: 'authorization-hex-key', re: /\bauthorization["'\s]*[:=]\s*["']?[a-f0-9]{32}\b/gi },
 ];
 
 export const EMAIL = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;

@@ -2,8 +2,8 @@
 // Repository guard: blocks local-only folders, non-allowlisted Markdown, secrets and personal data.
 // Usage: node scripts/guard.mjs --staged | --all
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import os from 'node:os';
+import { readFileSync } from 'node:fs';
+import { personalTerms, termMatchers } from './personal-terms.mjs';
 import { findSecrets } from './secret-patterns.mjs';
 
 const mode = process.argv.includes('--all') ? 'all' : 'staged';
@@ -17,31 +17,8 @@ const files = (mode === 'staged'
 const BLOCKED_PREFIXES = ['private/', 'bob-prompts/', '.codeverse/', 'node_modules/', '.next/', 'out/', 'apps/viewer/public/data/'];
 const MARKDOWN_ALLOW = [/^README\.md$/, /^AGENTS\.md$/, /^bob_sessions\//, /^\.bob\//];
 const BINARY = /\.(png|jpe?g|gif|webp|ico|woff2?|ttf|pdf|mp4|glb)$/i;
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
-
-function personalTerms() {
-  const terms = new Set();
-  const user = os.userInfo().username;
-  if (user && user.length >= 3) terms.add(user.toLowerCase());
-  try {
-    const email = git(['config', 'user.email']).trim();
-    if (email && !email.endsWith('users.noreply.github.com')) terms.add(email.toLowerCase());
-  } catch {
-    // no git email configured
-  }
-  const home = os.homedir().split('\\').join('/').toLowerCase();
-  if (home.length > 3) terms.add(home);
-  for (const t of (process.env.CODEVERSE_PRIVATE_TERMS || '').split(',')) if (t.trim()) terms.add(t.trim().toLowerCase());
-  if (existsSync('private/leak-terms.txt')) {
-    for (const t of readFileSync('private/leak-terms.txt', 'utf8').split(/\r?\n/)) {
-      if (t.trim() && !t.startsWith('#')) terms.add(t.trim().toLowerCase());
-    }
-  }
-  return [...terms];
-}
-
-const terms = process.env.CI ? [] : personalTerms();
-const termRes = terms.map((t) => new RegExp(`(^|[^a-z0-9])${escapeRe(t)}([^a-z0-9]|$)`));
+const terms = personalTerms();
+const hasPersonalTerm = termMatchers(terms);
 const problems = [];
 let sessionShots = 0;
 
@@ -62,8 +39,7 @@ for (const f of files) {
     continue;
   }
   for (const hit of findSecrets(text)) problems.push(`${f}:${hit.line}: possible secret (${hit.id})`);
-  const lower = text.toLowerCase().split('\\\\').join('/').split('\\').join('/');
-  if (termRes.some((re) => re.test(lower))) problems.push(`${f}: contains a personal term (username, email or home path)`);
+  if (terms.length && hasPersonalTerm(text)) problems.push(`${f}: contains a personal term (username, email or home path)`);
   if (f.startsWith('worlds/') && /"synthetic"\s*:\s*true/.test(text)) problems.push(`${f}: synthetic data inside a public world`);
 }
 

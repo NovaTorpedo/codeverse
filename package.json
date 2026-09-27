@@ -15,9 +15,11 @@
   "scripts": {
     "dev": "npm run data && npm run dev -w @codeverse/viewer",
     "data": "tsx scripts/build-data.ts",
-    "build": "npm run data -- --public && npm run check:public && npm run build -w @codeverse/viewer",
-    "build:preview": "npm run data && npm run build -w @codeverse/viewer",
+    "build": "npm run data -- --public && npm run check:public && npm run build -w @codeverse/viewer && npm run check:output",
+    "build:preview": "npm run data && npm run build -w @codeverse/viewer && npm run check:output",
     "check:public": "tsx scripts/check-public-data.ts",
+    "check:output": "node scripts/check-output-secrets.mjs apps/viewer/out",
+    "render:headers": "node scripts/render-headers.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck -w @codeverse/viewer",
     "lint": "eslint .",
     "test": "vitest run",
