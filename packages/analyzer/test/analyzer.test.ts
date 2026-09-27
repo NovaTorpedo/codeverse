@@ -54,6 +54,12 @@ describe('analyze(demo/shopfloor)', () => {
     expect(g.sources?.[P('src/customer/customer.service.ts')]).toContain('getBillingProfile');
   });
 
+  it('bundles non-code assets (ticket, logs) as text so their citations can be opened', () => {
+    expect(g.assets?.map((a) => a.path)).toContain(P('tickets/INC-2417.txt'));
+    expect(g.sources?.[P('tickets/INC-2417.txt')]).toContain('INC-2417');
+    expect(g.sources?.[P('logs/checkout-2026-09-24.ndjson')]).toContain('checkout.failed');
+  });
+
   it('never analyses local-only folders', () => {
     const self = analyze({ repoRoot, target: '.', includeSources: false });
     expect(self.nodes.some((n) => n.path?.startsWith('private/') || n.path?.startsWith('node_modules/'))).toBe(false);

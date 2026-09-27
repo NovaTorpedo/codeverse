@@ -82,7 +82,7 @@ for (const id of readdirSync(path.join(repoRoot, 'worlds')).sort()) {
     const inv = loadReal(worldDir, inc.investigation, 'codeverse.investigation');
     const rec = loadReal(worldDir, inc.recording, 'codeverse.recording');
     if (!inv) continue;
-    const e: IncidentEntry = { id: inc.id, title: inc.title, investigation: write(`${id}/incidents/${inc.id}.investigation.json`, inv) };
+    const e: IncidentEntry = { id: inc.id, title: inc.title, investigation: write(`${id}/incidents/${inc.id}.investigation.json`, inv), baseline: inc.baseline };
     if (rec) {
       e.recording = write(`${id}/recordings/${inc.id}.recording.json`, rec);
       entry.recordings.push(e.recording);

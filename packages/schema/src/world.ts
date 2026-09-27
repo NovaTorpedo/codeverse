@@ -6,6 +6,16 @@ export const IncidentEntry = z.object({
   title: z.string().max(160),
   investigation: z.string().max(200),
   recording: z.string().max(200).optional(),
+  /** A real test run on the unfixed code (e.g. on main), shown next to the investigation's verification. */
+  baseline: z
+    .object({
+      ref: z.string().max(80),
+      command: z.string().max(200),
+      testsPassed: z.number().int().nonnegative(),
+      testsFailed: z.number().int().nonnegative(),
+      ranAt: z.string().max(40),
+    })
+    .optional(),
 });
 export type IncidentEntry = z.infer<typeof IncidentEntry>;
 

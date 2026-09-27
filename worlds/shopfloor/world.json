@@ -11,7 +11,14 @@
       "id": "payment-failed",
       "title": "Payment failed during checkout",
       "investigation": "incidents/payment-failed.investigation.json",
-      "recording": "recordings/payment-failed.recording.json"
+      "recording": "recordings/payment-failed.recording.json",
+      "baseline": {
+        "ref": "main",
+        "command": "npm run test:demo",
+        "testsPassed": 6,
+        "testsFailed": 1,
+        "ranAt": "2026-09-27T12:00:21Z"
+      }
     }
   ]
 }

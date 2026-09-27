@@ -199,6 +199,10 @@ export function analyze(opts: AnalyzeOptions): AnalysisGraph {
     }
   }
 
+  // Non-code files (tickets, logs, manifests) are bundled as text so their citations open in the viewer.
+  const assets = listAssetFiles(targetAbs, skip).map((abs) => ({ path: rel(abs), text: readText(abs) }));
+  if (opts.includeSources !== false) for (const a of assets) if (a.text.length < 200_000) sources[a.path] = a.text;
+
   const sortedNodes = [...nodes.values()].sort((a, b) => a.id.localeCompare(b.id));
   const sortedEdges = [...edges.values()].sort((a, b) => a.id.localeCompare(b.id));
   return {
@@ -207,7 +211,7 @@ export function analyze(opts: AnalyzeOptions): AnalysisGraph {
     project: { name: opts.name ?? path.basename(targetAbs), root: target, analyzerVersion: ANALYZER_VERSION, fileCount: files.length, loc: totalLoc },
     nodes: sortedNodes,
     edges: sortedEdges,
-    assets: listAssetFiles(targetAbs, skip).map((abs) => ({ path: rel(abs), lines: readText(abs).split('\n').length })),
+    assets: assets.map((a) => ({ path: a.path, lines: a.text.split('\n').length })),
     sources: opts.includeSources === false ? undefined : sources,
   };
 }
