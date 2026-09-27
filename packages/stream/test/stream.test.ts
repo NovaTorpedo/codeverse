@@ -80,6 +80,12 @@ describe('RecordingBuilder', () => {
     expect(b.events[2]?.content).toBe('Done.');
   });
 
+  it('shows Windows paths from Bob Shell in repo style', () => {
+    const b = new RecordingBuilder(idx);
+    b.pushChunk('{"type":"tool_use","tool_name":"read_file","tool_id":"w","parameters":{"path":"demo\\\\shopfloor\\\\tickets\\\\INC-2417.txt"}}\n');
+    expect(describeEvent(b.events[0]!)).toBe('read_file · demo/shopfloor/tickets/INC-2417.txt');
+  });
+
   it('ignores non-JSON lines and prototype keys', () => {
     const b = new RecordingBuilder(idx);
     b.pushChunk('warning: not json\n{"type":"tool_use","tool_name":"read_file","tool_id":"x","parameters":{"__proto__":{"evil":1},"path":"src/cart/cart.service.ts"}}\n');

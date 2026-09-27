@@ -102,7 +102,8 @@ export function describeEvent(ev: RecEvent): string {
     case 'message':
       return ev.isReasoning ? 'Thinking' : ev.role === 'user' ? 'Prompt' : 'Answer';
     case 'tool_use': {
-      const arg = first(['path', 'file_path', 'relative_path', 'pattern', 'name_path', 'query', 'skill', 'description', 'command']);
+      // Bob Shell on Windows emits backslash paths; show them in repo style.
+      const arg = first(['path', 'file_path', 'relative_path'])?.replace(/\\/g, '/') ?? first(['pattern', 'name_path', 'query', 'skill', 'description', 'command']);
       return `${ev.toolName ?? 'tool'}${arg ? ` · ${arg}` : ''}`;
     }
     case 'tool_result':
