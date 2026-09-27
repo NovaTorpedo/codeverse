@@ -235,10 +235,10 @@ function PathList({ incident }: { incident: LoadedIncident }) {
           <motion.li key={s.id} initial={false} animate={{ opacity: visible ? 1 : 0.35 }}>
             <button className="list-item" style={{ padding: '4px 8px' }} onClick={() => openCode({ file: s.file, line: s.line, tone: failed ? 'red' : 'yellow', title: s.symbol })}>
               <span style={{ color, width: 16, textAlign: 'center', fontWeight: 700 }}>{!visible ? '○' : failed ? '✕' : s.status === 'not-reached' && !healed ? '·' : '✓'}</span>
-              <span className="headline" style={{ width: 88, flex: 'none' }}>
+              <span className="headline" style={{ flex: '0 0 120px', minWidth: 0, overflowWrap: 'anywhere' }}>
                 {s.label}
               </span>
-              <span className="caption truncate grow">{failed ? (s.note ?? incident.investigation.failure.message) : (s.symbol ?? s.file.split('/').pop())}</span>
+              <span className="caption truncate grow">{failed ? (s.note ?? incident.investigation.failure.message) : s.symbol && s.symbol !== s.label ? s.symbol : s.file.split('/').pop()}</span>
             </button>
           </motion.li>
         );
