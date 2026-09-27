@@ -7,6 +7,8 @@ import { phantomSpots } from './Grounding';
 import { stepAnchors } from './IncidentPath';
 import { laneColor, PALETTE } from './palette';
 import { dynamicAnchors, project, projector } from './projector';
+import { flowsFor } from '../story/flows';
+import { nodeName } from '../story/explain';
 import { usePlaybackState } from './useHighlights';
 
 /** Inside the Canvas: keeps the projector in sync with the camera and viewport. */
@@ -94,8 +96,10 @@ export function SceneLabels({ world }: { world: LoadedWorld }) {
   const openCode = useStore((s) => s.openCode);
   const incident = useStore(currentIncident);
   const pb = usePlaybackState();
+  const flow = useStore((s) => s.flow);
   const semanticNames = useMemo(() => new Map(world.semantic?.services.map((s) => [s.id, s.name]) ?? []), [world.semantic]);
 
+  const intro = useStore((s) => s.introOpen);
   const labels: LabelSpec[] = [];
   const incidentView = mode === 'incident' && incident && stage !== 'investigate';
 
@@ -159,7 +163,7 @@ export function SceneLabels({ world }: { world: LoadedWorld }) {
           <>
             <span style={{ opacity: 0.6, marginRight: 6 }}>{i + 1}</span>
             {s.label}
-            {isFail && <span style={{ marginLeft: 8 }}>✕ {s.note ?? incident.investigation.failure.errorType}</span>}
+            {isFail && <span style={{ marginLeft: 8 }}>✕ {incident.investigation.failure.errorType}</span>}
             {healed && s.status === 'failed' && <span style={{ marginLeft: 8 }}>✓ fixed</span>}
           </>
         ),
@@ -190,6 +194,28 @@ export function SceneLabels({ world }: { world: LoadedWorld }) {
     }
   }
 
+  const f = flow ? flowsFor(world).find((x) => x.id === flow.id) : undefined;
+  if (f && flow) {
+    const seen = new Set<string>();
+    f.hops.slice(0, flow.step + 1).forEach((h, i) => {
+      for (const id of i === 0 ? [h.from, h.to] : [h.to]) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+        const a = layout.anchor(id);
+        if (!a) continue;
+        const current = i === flow.step && id === h.to;
+        labels.push({
+          key: `flow:${id}`,
+          at: { x: a.x, y: a.y + 1.4, z: a.z },
+          className: h.status === 'failed' && id === h.to ? 'fail' : current ? '' : 'ok',
+          style: current ? undefined : { opacity: 0.8 },
+          z: current ? 2600 : 2000,
+          content: nodeName(world, id),
+        });
+      }
+    });
+  }
+
   const report = mode === 'incident' && stage !== 'investigate' && stage !== 'replay' ? incident?.grounding : mode === 'explore' ? world.semanticGrounding : undefined;
   for (const p of phantomSpots(layout, report)) {
     labels.push({
@@ -205,5 +231,5 @@ export function SceneLabels({ world }: { world: LoadedWorld }) {
     });
   }
 
-  return <LabelLayer labels={labels} />;
+  return <LabelLayer labels={intro ? [] : labels} />;
 }

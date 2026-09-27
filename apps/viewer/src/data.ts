@@ -33,7 +33,7 @@ export async function loadWorld(entry: WorldEntry): Promise<LoadedWorld> {
     entry.incidents.map(async (inc) => {
       const investigation = Investigation.parse(await getJson(inc.investigation));
       const recording = inc.recording ? Recording.parse(await getJson(inc.recording)) : undefined;
-      return { id: inc.id, title: inc.title, investigation, recording, grounding: ground(investigation, graph) };
+      return { id: inc.id, title: inc.title, investigation, recording, grounding: ground(investigation, graph), baseline: inc.baseline };
     }),
   );
   return {

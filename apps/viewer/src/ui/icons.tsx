@@ -88,4 +88,43 @@ export const Icon = {
       <path d="M8 1.5l1.4 4.1L13.5 7l-4.1 1.4L8 12.5 6.6 8.4 2.5 7l4.1-1.4z" />
     </svg>
   ),
+  link: () => (
+    <svg {...P}>
+      <path d="M6.8 9.2a2.8 2.8 0 004 0l2.2-2.2a2.8 2.8 0 00-4-4l-.9.9M9.2 6.8a2.8 2.8 0 00-4 0L3 9a2.8 2.8 0 004 4l.9-.9" />
+    </svg>
+  ),
+  book: () => (
+    <svg {...P}>
+      <path d="M2.5 3.2c1.8-.6 3.7-.4 5.5.8v9c-1.8-1.2-3.7-1.4-5.5-.8zM13.5 3.2c-1.8-.6-3.7-.4-5.5.8v9c1.8-1.2 3.7-1.4 5.5-.8z" />
+    </svg>
+  ),
+  menu: () => (
+    <svg {...P}>
+      <circle cx="3.5" cy="8" r=".9" fill="currentColor" />
+      <circle cx="8" cy="8" r=".9" fill="currentColor" />
+      <circle cx="12.5" cy="8" r=".9" fill="currentColor" />
+    </svg>
+  ),
+  arrow: () => (
+    <svg {...P}>
+      <path d="M3 8h10M9 4l4 4-4 4" />
+    </svg>
+  ),
+  chevron: () => (
+    <svg {...P}>
+      <path d="M6 3.5L10.5 8 6 12.5" />
+    </svg>
+  ),
+  route: () => (
+    <svg {...P}>
+      <circle cx="3.5" cy="12.5" r="1.6" />
+      <circle cx="12.5" cy="3.5" r="1.6" />
+      <path d="M5 12.5h4.5a2 2 0 000-4h-3a2 2 0 010-4H11" />
+    </svg>
+  ),
+  code: () => (
+    <svg {...P}>
+      <path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" />
+    </svg>
+  ),
 };

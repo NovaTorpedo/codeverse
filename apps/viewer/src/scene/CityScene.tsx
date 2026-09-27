@@ -8,11 +8,13 @@ import { Buildings } from './Buildings';
 import { CameraRig } from './CameraRig';
 import { Districts } from './Districts';
 import { EdgeLines, Particles, SelectedEdges, useArcs } from './Edges';
+import { FlowPath } from './FlowPath';
 import { Phantoms } from './Grounding';
 import { IncidentPath } from './IncidentPath';
 import { Cores, Gateways } from './Landmarks';
 import { ProjectorBridge, SceneLabels } from './SceneLabels';
 import { useHighlights } from './useHighlights';
+import { ViewOffset } from './ViewOffset';
 
 function World({ world }: { world: LoadedWorld }) {
   const highlights = useHighlights();
@@ -36,8 +38,10 @@ function World({ world }: { world: LoadedWorld }) {
       <Cores layout={world.layout} reducedMotion={reducedMotion} />
       <BobProbes layout={world.layout} />
       <IncidentPath layout={world.layout} />
+      <FlowPath layout={world.layout} />
       <Phantoms layout={world.layout} report={report} />
       <ProjectorBridge />
+      <ViewOffset />
     </>
   );
 }

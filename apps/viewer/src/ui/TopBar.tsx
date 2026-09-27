@@ -1,75 +1,152 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { useStore, type Mode } from '../store';
+import { useEffect, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { goChapter } from '../chapters';
+import { useStore, type Chapter } from '../store';
 import { Icon } from './icons';
 import { Logo } from './Splash';
 
-export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: Array<{ id: T; label: string; disabled?: boolean }>; onChange: (v: T) => void; label: string }) {
-  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [thumb, setThumb] = useState({ left: 0, width: 0 });
-  useLayoutEffect(() => {
-    const el = refs.current[value];
-    if (el) setThumb({ left: el.offsetLeft, width: el.offsetWidth });
-  }, [value, options.length]);
+const CHAPTERS: Array<{ id: Chapter; label: string }> = [
+  { id: 'explore', label: 'Explore the system' },
+  { id: 'investigate', label: 'Watch Bob investigate' },
+  { id: 'fixed', label: 'See it fixed' },
+];
+
+export function copyLink() {
+  const s = useStore.getState();
+  const url = window.location.href;
+  const done = () => s.notify('Link to this moment copied');
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(done, () => s.notify(url));
+  else s.notify(url);
+}
+
+function ChapterNav() {
+  const chapter = useStore((s) => s.chapter);
+  const mode = useStore((s) => s.mode);
+  const hasIncident = useStore((s) => Boolean(s.world?.incidents.length));
+  const story = useStore((s) => Boolean(s.story));
+  const cur = CHAPTERS.findIndex((c) => c.id === chapter);
   return (
-    <div className="segmented" role="group" aria-label={label}>
-      <motion.span className="thumb" animate={thumb} transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
-      {options.map((o) => (
-        <button key={o.id} ref={(el) => void (refs.current[o.id] = el)} aria-pressed={value === o.id} disabled={o.disabled} onClick={() => onChange(o.id)} style={o.disabled ? { opacity: 0.35 } : undefined}>
-          {o.label}
-        </button>
+    <nav className="glass capsule chapters" aria-label="Chapters">
+      {CHAPTERS.map((c, i) => (
+        <span key={c.id} className="row" style={{ gap: 4 }}>
+          {i > 0 && <span className="chapter-sep" aria-hidden />}
+          <button
+            className={`chapter ${i < cur && mode !== 'tour' ? 'done' : ''}`}
+            aria-current={c.id === chapter && mode !== 'tour' ? 'step' : undefined}
+            disabled={i > 0 && !hasIncident}
+            onClick={() => goChapter(c.id, { autoplay: true })}
+            title={story ? `${c.label} (leaves the guided story)` : c.label}
+          >
+            <span className="num">{i < cur && mode !== 'tour' ? '✓' : i + 1}</span>
+            <span className="label">{c.label}</span>
+          </button>
+        </span>
       ))}
-    </div>
+    </nav>
   );
 }
 
-export function TopBar({ onWorld, onMode }: { onWorld: (id: string) => void; onMode: (m: Mode) => void }) {
-  const index = useStore((s) => s.index);
+function Menu({ onWorld, onTour, onFile }: { onWorld: (id: string) => void; onTour: () => void; onFile: () => void }) {
+  const open = useStore((s) => s.menuOpen);
+  const set = useStore((s) => s.set);
+  const worlds = useStore((s) => s.index?.worlds ?? []);
   const world = useStore((s) => s.world);
-  const mode = useStore((s) => s.mode);
+  const view2d = useStore((s) => s.view2d);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && set({ menuOpen: false });
+    window.addEventListener('pointerdown', close);
+    ref.current?.querySelector('button')?.focus();
+    return () => window.removeEventListener('pointerdown', close);
+  }, [open, set]);
+  const item = (label: string, onClick: () => void, hint?: string) => (
+    <button
+      className="list-item"
+      role="menuitem"
+      onClick={() => {
+        set({ menuOpen: false });
+        onClick();
+      }}
+    >
+      <span className="grow">{label}</span>
+      {hint && <span className="kbd">{hint}</span>}
+    </button>
+  );
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          ref={ref}
+          role="menu"
+          aria-label="More"
+          className="glass thick"
+          initial={{ opacity: 0, y: -6, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.98 }}
+          transition={{ duration: 0.16 }}
+          style={{ position: 'fixed', top: 66, right: 'var(--gutter)', width: 260, padding: 6, zIndex: 60 }}
+          onKeyDown={(e) => e.key === 'Escape' && set({ menuOpen: false })}
+        >
+          {item('Search the code', () => set({ searchOpen: true }), '/')}
+          {item('How to read the city', () => set({ legendOpen: true }), '?')}
+          {item(view2d ? 'Show the 3D city' : 'Show the 2D map', () => set({ view2d: !view2d }), 'M')}
+          {item('Copy a link to this moment', copyLink)}
+          {world?.tour && item("Bob's guided tour", onTour, 'T')}
+          <div className="divider" />
+          <div className="eyebrow" style={{ padding: '6px 10px 2px' }}>
+            Codebase
+          </div>
+          {worlds.map((w) => (
+            <button key={w.id} className="list-item" role="menuitemradio" aria-checked={world?.entry.id === w.id} onClick={() => (set({ menuOpen: false }), onWorld(w.id))}>
+              <span className="grow">{w.title}</span>
+              {world?.entry.id === w.id && <Icon.check />}
+            </button>
+          ))}
+          {item('Open a graph or recording (JSON)…', onFile)}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+export function TopBar({ onWorld, onTour, onFile }: { onWorld: (id: string) => void; onTour: () => void; onFile: () => void }) {
   const set = useStore((s) => s.set);
   const view2d = useStore((s) => s.view2d);
-  const worlds = index?.worlds ?? [];
+  const menuOpen = useStore((s) => s.menuOpen);
+  const world = useStore((s) => s.world);
+  const intro = useStore((s) => s.introOpen);
+  if (intro) return null;
   return (
-    <header className="row" style={{ position: 'fixed', top: 14, left: 16, right: 16, zIndex: 40, gap: 10, pointerEvents: 'none', flexWrap: 'wrap' }}>
-      <div className="glass capsule row" style={{ padding: '6px 8px 6px 10px', gap: 10, pointerEvents: 'auto' }}>
-        <Logo />
-        <span className="title-3" style={{ letterSpacing: '-0.03em' }}>
-          CodeVerse
-        </span>
-        {worlds.length > 1 && (
-          <Segmented
-            label="World"
-            value={world?.entry.id ?? worlds[0]!.id}
-            options={[...worlds.map((w) => ({ id: w.id, label: w.title })), ...(world?.entry.id === 'uploaded' ? [{ id: 'uploaded', label: 'Your file' }] : [])]}
-            onChange={onWorld}
-          />
-        )}
-      </div>
-      <div className="glass capsule" style={{ padding: 4, pointerEvents: 'auto' }}>
-        <Segmented<Mode>
-          label="Mode"
-          value={mode}
-          onChange={onMode}
-          options={[
-            { id: 'explore', label: 'Explore' },
-            { id: 'incident', label: 'Incident', disabled: !world?.incidents.length },
-            { id: 'tour', label: 'Tour', disabled: !world?.tour },
-          ]}
-        />
-      </div>
-      <button className="glass capsule btn" style={{ pointerEvents: 'auto', height: 40, padding: '0 14px', gap: 8 }} onClick={() => set({ searchOpen: true })} aria-label="Search the city">
-        <Icon.search />
-        <span className="secondary">Search</span>
-        <span className="kbd">⌘K</span>
-      </button>
-      <div style={{ flex: 1 }} />
-      <button className="glass capsule btn icon" style={{ pointerEvents: 'auto', width: 40, height: 40 }} onClick={() => set({ view2d: !view2d })} aria-label={view2d ? 'Switch to 3D' : 'Switch to 2D map'} title={view2d ? '3D city' : '2D map'}>
-        {view2d ? <Icon.cube /> : <Icon.map />}
-      </button>
-      <button className="glass capsule btn icon" style={{ pointerEvents: 'auto', width: 40, height: 40 }} onClick={() => set({ helpOpen: true })} aria-label="Keyboard shortcuts and about">
-        <Icon.help />
-      </button>
-    </header>
+    <>
+      <header className="topbar">
+        <button className="glass capsule brand" style={{ border: 0 }} onClick={() => set({ introOpen: true, story: undefined })} aria-label="CodeVerse: back to the start">
+          <Logo />
+          <span className="brand-name title-3" style={{ letterSpacing: '-0.03em' }}>
+            CodeVerse
+          </span>
+          <span className="brand-name caption only-desktop">{world?.entry.title}</span>
+        </button>
+        <ChapterNav />
+        <div className="tools">
+          <button className="glass capsule btn icon only-desktop" style={{ width: 40, height: 40 }} onClick={() => set({ searchOpen: true })} aria-label="Search the code" title="Search (/)">
+            <Icon.search />
+          </button>
+          <button className="glass capsule btn icon only-desktop" style={{ width: 40, height: 40 }} onClick={() => set({ legendOpen: true })} aria-label="How to read the city" title="How to read the city (?)">
+            <Icon.book />
+          </button>
+          <button className="glass capsule btn icon only-desktop" style={{ width: 40, height: 40 }} onClick={() => set({ view2d: !view2d })} aria-label={view2d ? 'Show the 3D city' : 'Show the 2D map'} title={view2d ? '3D city (M)' : '2D map (M)'}>
+            {view2d ? <Icon.cube /> : <Icon.map />}
+          </button>
+          <button className="glass capsule btn icon only-desktop" style={{ width: 40, height: 40 }} onClick={copyLink} aria-label="Copy a link to this moment" title="Copy a link to this moment">
+            <Icon.link />
+          </button>
+          <button className="glass capsule btn icon" style={{ width: 40, height: 40 }} aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => set({ menuOpen: !menuOpen })} aria-label="More">
+            <Icon.menu />
+          </button>
+        </div>
+      </header>
+      <Menu onWorld={onWorld} onTour={onTour} onFile={onFile} />
+    </>
   );
 }

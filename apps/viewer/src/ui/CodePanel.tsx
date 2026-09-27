@@ -26,16 +26,17 @@ export function CodePanel() {
       {code && (
         <motion.aside
           key="code"
-          className="glass thick"
+          className="glass thick panel"
           role="dialog"
           aria-label={`Source of ${code.file}`}
           initial={{ x: 60, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 60, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 280, damping: 30 }}
-          style={{ position: 'fixed', right: 16, top: 72, bottom: 16, width: 'min(620px, calc(100vw - 32px))', zIndex: 60, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          style={{ ['--panel-w' as string]: 'min(620px, 46vw)', zIndex: 60 } as React.CSSProperties}
         >
-          <header className="row" style={{ padding: '12px 14px', borderBottom: '1px solid var(--separator)', gap: 10 }}>
+          <div className="sheet-handle" />
+          <header className="row" style={{ padding: '12px 14px', borderBottom: '1px solid var(--separator)', gap: 10, alignItems: 'center' }}>
             <Icon.file />
             <div className="stack grow" style={{ minWidth: 0 }}>
               <span className="headline truncate">{code.file.split('/').pop()}</span>
@@ -45,14 +46,14 @@ export function CodePanel() {
                 {code.title ? ` · ${code.title}` : ''}
               </span>
             </div>
-            <button className="btn" onClick={() => flyTo(code.file)}>
+            <button className="btn sm only-desktop" onClick={() => flyTo(code.file, undefined, false)}>
               Show in city
             </button>
             <button className="btn icon" aria-label="Close code" onClick={() => openCode(undefined)}>
               <Icon.close />
             </button>
           </header>
-          <div ref={scroller} className="scroll code" style={{ flex: 1, padding: '10px 0' }}>
+          <div ref={scroller} className="scroll code" style={{ flex: 1, padding: '10px 0' }} tabIndex={0} aria-label="Source code">
             {text === undefined ? (
               <div className="caption" style={{ padding: 16 }}>
                 Source for this file isn’t bundled in this world.

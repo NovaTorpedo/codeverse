@@ -75,7 +75,7 @@ export function BobProbes({ layout }: { layout: CityLayout }) {
   return (
     <group>
       {pb.lanes.map((l, i) =>
-        l.kind === 'main' || l.active || l.at ? <Probe key={l.id} layout={layout} at={l.active || l.kind === 'main' ? l.at : undefined} color={laneColor(i)} laneId={l.id} index={i} active={l.active || (l.kind === 'main' && !pb.done)} /> : null,
+        l.kind === 'main' || l.active ? <Probe key={l.id} layout={layout} at={l.active || l.kind === 'main' ? l.at : undefined} color={laneColor(i)} laneId={l.id} index={i} active={l.active || (l.kind === 'main' && !pb.done)} /> : null,
       )}
       <ScanRings layout={layout} ids={pb.matched} />
     </group>
