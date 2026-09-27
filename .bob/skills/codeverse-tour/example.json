@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "codeverse.tour",
+  "synthetic": false,
+  "generatedBy": { "tool": "ibm-bob", "client": "bob-ide", "mode": "codeverse-cartographer", "skill": "codeverse-tour" },
+  "target": "examples/library",
+  "title": "FORMAT EXAMPLE: the library in four stops",
+  "estimatedMinutes": 5,
+  "waypoints": [
+    {
+      "id": "w1",
+      "node": "svc:http",
+      "title": "The front desk",
+      "narration": "FORMAT EXAMPLE. Every request enters through the route table.",
+      "notice": ["Routes are registered in one place", "Errors map to status codes here"],
+      "related": [{ "file": "examples/library/src/http/routes.ts", "line": 5 }],
+      "deeper": [{ "question": "Where are errors turned into responses?", "answer": "FORMAT EXAMPLE. In the error middleware.", "citations": [{ "file": "examples/library/src/http/errors.ts", "line": 3 }] }]
+    },
+    {
+      "id": "w2",
+      "node": "examples/library/src/loans/loan.service.ts",
+      "title": "Where loans live",
+      "narration": "FORMAT EXAMPLE. LoanService owns the loan lifecycle.",
+      "notice": ["renew() extends the due date"],
+      "related": [{ "file": "examples/library/src/loans/loan.service.ts", "line": 27, "symbol": "LoanService.renew" }],
+      "deeper": []
+    }
+  ]
+}

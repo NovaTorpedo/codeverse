@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "codeverse.semantic",
+  "synthetic": false,
+  "generatedBy": { "tool": "ibm-bob", "client": "bob-ide", "mode": "codeverse-cartographer", "skill": "codeverse-scan" },
+  "target": "examples/library",
+  "summary": "FORMAT EXAMPLE ONLY (fictional library app). An HTTP layer routes requests to catalogue and loans; loans notify members by email; all state lives in one database.",
+  "services": [
+    { "id": "svc:http", "name": "HTTP", "responsibility": "FORMAT EXAMPLE. Registers routes and maps errors to status codes.", "citations": [{ "file": "examples/library/src/http/routes.ts", "line": 5 }] },
+    { "id": "svc:loans", "name": "Loans", "responsibility": "FORMAT EXAMPLE. Creates, renews and closes loans.", "citations": [{ "file": "examples/library/src/loans/loan.service.ts", "line": 10, "symbol": "LoanService" }] }
+  ],
+  "entryPoints": [
+    { "file": "examples/library/src/http/routes.ts", "symbol": "registerRoutes", "description": "FORMAT EXAMPLE. All HTTP routes.", "citations": [{ "file": "examples/library/src/http/routes.ts", "line": 5 }] }
+  ],
+  "dataFlows": [
+    {
+      "id": "renew",
+      "name": "Renew a loan",
+      "description": "FORMAT EXAMPLE. From POST /loans/:id/renew to the updated loan.",
+      "steps": [
+        { "from": "examples/library/src/http/routes.ts", "to": "examples/library/src/loans/loan.service.ts", "via": "LoanService.renew", "citation": { "file": "examples/library/src/http/routes.ts", "line": 12 } }
+      ]
+    }
+  ]
+}

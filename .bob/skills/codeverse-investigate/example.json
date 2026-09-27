@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "codeverse.investigation",
+  "synthetic": false,
+  "generatedBy": { "tool": "ibm-bob", "client": "bob-ide", "mode": "codeverse-cartographer", "skill": "codeverse-investigate" },
+  "target": "examples/library",
+  "symptom": "Renewing a loan returns 500",
+  "summary": "FORMAT EXAMPLE ONLY (fictional library app). Renewals fail for loans created before the due-date migration because dueDate is a string there and LoanService.renew calls getTime() on it.",
+  "rootCause": {
+    "title": "Legacy loans store dueDate as a string",
+    "explanation": "FORMAT EXAMPLE. The importer writes dueDate as an ISO string; LoanService.renew assumes a Date.",
+    "citations": [
+      { "file": "examples/library/src/import/importer.ts", "line": 41, "symbol": "importLoans" },
+      { "file": "examples/library/src/loans/loan.service.ts", "line": 27, "symbol": "LoanService.renew" }
+    ]
+  },
+  "executionPath": [
+    { "id": "user", "label": "User", "file": "examples/library/src/http/routes.ts", "line": 12, "status": "ok", "note": "POST /loans/:id/renew" },
+    { "id": "loans", "label": "Loans", "file": "examples/library/src/loans/loan.service.ts", "symbol": "LoanService.renew", "line": 27, "status": "failed", "note": "dueDate.getTime is not a function" },
+    { "id": "notify", "label": "Notify", "file": "examples/library/src/notify/mailer.ts", "symbol": "Mailer.send", "status": "not-reached" }
+  ],
+  "failure": {
+    "stepId": "loans",
+    "errorType": "TypeError",
+    "message": "loan.dueDate.getTime is not a function",
+    "citations": [{ "file": "examples/library/src/loans/loan.service.ts", "line": 27 }]
+  },
+  "evidence": [{ "kind": "log", "text": "http.unhandled_error TypeError: loan.dueDate.getTime is not a function", "citation": { "file": "examples/library/logs/app.ndjson" } }],
+  "ruledOut": [
+    { "hypothesis": "Mail server outage", "reason": "FORMAT EXAMPLE. The mailer is never reached for the failing request.", "citations": [{ "file": "examples/library/src/notify/mailer.ts", "line": 8 }] }
+  ],
+  "fix": {
+    "summary": "FORMAT EXAMPLE. Normalise dueDate when loading loans.",
+    "diff": "--- a/examples/library/src/loans/loan.service.ts\n+++ b/examples/library/src/loans/loan.service.ts\n@@ -26,3 +26,3 @@\n   renew(loan: Loan): Loan {\n-    const due = loan.dueDate.getTime();\n+    const due = new Date(loan.dueDate).getTime();\n     return { ...loan, dueDate: new Date(due + WEEK) };\n",
+    "files": ["examples/library/src/loans/loan.service.ts"],
+    "testsToRun": ["npm test"]
+  },
+  "verification": { "status": "pending" }
+}

@@ -2,7 +2,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import path from 'node:path';
 
-export const HARD_LIMITS = { maxCost: 3, maxTurns: 40, timeoutMs: 15 * 60 * 1000, promptChars: 2000 } as const;
+export const HARD_LIMITS = { maxCost: 3, maxTurns: 40, timeoutMs: 15 * 60 * 1000, promptChars: 2000, rawFileMaxBytes: 50 * 1024 * 1024 } as const;
 export const DISABLED_TOOL_GROUPS = ['execute', 'mcp'] as const;
 export const DEFAULT_MODE = 'codeverse-cartographer';
 
@@ -20,6 +20,9 @@ export function newToken(): string {
 export function tokensEqual(a: string, b: string): boolean {
   const x = Buffer.from(a);
   const y = Buffer.from(b);
+  // Zero-length buffers compare equal with timingSafeEqual; reject them explicitly
+  // so an empty/blank token in the server config never grants access.
+  if (x.length === 0) return false;
   return x.length === y.length && timingSafeEqual(x, y);
 }
 

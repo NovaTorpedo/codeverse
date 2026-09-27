@@ -1,0 +1,410 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "kind": {
+      "type": "string",
+      "const": "codeverse.investigation"
+    },
+    "synthetic": {
+      "default": false,
+      "type": "boolean"
+    },
+    "generatedBy": {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "type": "string",
+          "enum": [
+            "ibm-bob",
+            "codeverse-synthetic"
+          ]
+        },
+        "client": {
+          "type": "string",
+          "enum": [
+            "bob-ide",
+            "bob-shell",
+            "fixture"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "skill": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "recordedAt": {
+          "type": "string",
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "tool"
+      ]
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "symptom": {
+      "type": "string",
+      "maxLength": 400
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 8000
+    },
+    "rootCause": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "explanation": {
+          "type": "string",
+          "maxLength": 8000
+        },
+        "citations": {
+          "minItems": 1,
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "file": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "line": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "endLine": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "symbol": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "file"
+            ]
+          }
+        }
+      },
+      "required": [
+        "title",
+        "explanation",
+        "citations"
+      ]
+    },
+    "executionPath": {
+      "minItems": 2,
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "symbol": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "line": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "failed",
+              "not-reached"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 400
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "file",
+          "status"
+        ]
+      }
+    },
+    "failure": {
+      "type": "object",
+      "properties": {
+        "stepId": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "errorType": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "citations": {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "file": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "line": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "endLine": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "symbol": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "file"
+            ]
+          }
+        }
+      },
+      "required": [
+        "stepId",
+        "errorType",
+        "message",
+        "citations"
+      ]
+    },
+    "evidence": {
+      "default": [],
+      "maxItems": 40,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ticket",
+              "log",
+              "code",
+              "test"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "citation": {
+            "type": "object",
+            "properties": {
+              "file": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "line": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "endLine": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "symbol": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "file"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ]
+      }
+    },
+    "ruledOut": {
+      "default": [],
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "hypothesis": {
+            "type": "string",
+            "maxLength": 400
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "citations": {
+            "default": [],
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "line": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endLine": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "symbol": {
+                  "type": "string",
+                  "maxLength": 200
+                }
+              },
+              "required": [
+                "file"
+              ]
+            }
+          }
+        },
+        "required": [
+          "hypothesis",
+          "reason"
+        ]
+      }
+    },
+    "fix": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "maxLength": 8000
+        },
+        "diff": {
+          "type": "string",
+          "maxLength": 60000
+        },
+        "files": {
+          "maxItems": 40,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "testsToRun": {
+          "default": [],
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 300
+          }
+        }
+      },
+      "required": [
+        "summary",
+        "diff",
+        "files"
+      ]
+    },
+    "verification": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "passed",
+            "failed"
+          ]
+        },
+        "command": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "testsPassed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "testsFailed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ranAt": {
+          "type": "string",
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "status"
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "generatedBy",
+    "target",
+    "symptom",
+    "summary",
+    "rootCause",
+    "executionPath",
+    "failure"
+  ]
+}

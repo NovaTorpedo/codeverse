@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage } from 'node:http';
-import { mkdirSync, readFileSync, statSync, watch, type FSWatcher } from 'node:fs';
+import { mkdirSync, readFileSync, watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { LIMITS, parseDocument } from '@codeverse/schema';
@@ -94,14 +94,17 @@ export function startBridge(opts: BridgeOptions) {
     ws.send(JSON.stringify({ type: 'hello', version: 1, target }));
     ws.on('message', (data, isBinary) => {
       if (isBinary) return;
-      let msg: { type?: string; command?: unknown; prompt?: unknown };
+      let msg: unknown;
       try {
         msg = JSON.parse(data.toString());
       } catch {
         return;
       }
-      if (msg.type === 'run') startRun(ws, msg.command, msg.prompt);
-      else if (msg.type === 'cancel') active?.cancel();
+      // JSON.parse can return null, a number, or an array — guard before property access.
+      if (typeof msg !== 'object' || msg === null || Array.isArray(msg)) return;
+      const m = msg as { type?: unknown; command?: unknown; prompt?: unknown };
+      if (m.type === 'run') startRun(ws, m.command, m.prompt);
+      else if (m.type === 'cancel') active?.cancel();
     });
   });
 
@@ -115,8 +118,9 @@ export function startBridge(opts: BridgeOptions) {
       setTimeout(() => {
         const file = path.join(recordingsDir, path.basename(name));
         try {
-          if (statSync(file).size > LIMITS.maxBytes) return;
+          // Read first, then check size — avoids a TOCTOU race between statSync and readFileSync.
           const text = readFileSync(file, 'utf8');
+          if (Buffer.byteLength(text, 'utf8') > LIMITS.maxBytes) return;
           const parsed = parseDocument(text);
           if (!parsed.ok) {
             broadcast({ type: 'error', message: `${path.basename(name)}: ${parsed.error}` });

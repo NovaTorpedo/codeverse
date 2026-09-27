@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "kind": {
+      "type": "string",
+      "const": "codeverse.tour"
+    },
+    "synthetic": {
+      "default": false,
+      "type": "boolean"
+    },
+    "generatedBy": {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "type": "string",
+          "enum": [
+            "ibm-bob",
+            "codeverse-synthetic"
+          ]
+        },
+        "client": {
+          "type": "string",
+          "enum": [
+            "bob-ide",
+            "bob-shell",
+            "fixture"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "skill": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "recordedAt": {
+          "type": "string",
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "tool"
+      ]
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "estimatedMinutes": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 60
+    },
+    "waypoints": {
+      "minItems": 1,
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "node": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "narration": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "notice": {
+            "default": [],
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 400
+            }
+          },
+          "related": {
+            "default": [],
+            "maxItems": 12,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "line": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endLine": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "symbol": {
+                  "type": "string",
+                  "maxLength": 200
+                }
+              },
+              "required": [
+                "file"
+              ]
+            }
+          },
+          "deeper": {
+            "default": [],
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "question": {
+                  "type": "string",
+                  "maxLength": 400
+                },
+                "answer": {
+                  "type": "string",
+                  "maxLength": 8000
+                },
+                "citations": {
+                  "default": [],
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "file": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512
+                      },
+                      "line": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "endLine": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "symbol": {
+                        "type": "string",
+                        "maxLength": 200
+                      }
+                    },
+                    "required": [
+                      "file"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "question",
+                "answer"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "node",
+          "title",
+          "narration"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "generatedBy",
+    "target",
+    "title",
+    "estimatedMinutes",
+    "waypoints"
+  ]
+}

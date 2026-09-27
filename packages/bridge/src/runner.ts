@@ -68,6 +68,8 @@ export function runBob(opts: RunOptions): RunHandle {
   const args = [...bob.prefix, ...buildBobArgs(opts)];
   mkdirSync(path.dirname(opts.rawFile), { recursive: true });
   const raw = createWriteStream(opts.rawFile, { encoding: 'utf8' });
+  let rawBytesWritten = 0;
+  let rawCapExceeded = false;
   const child = spawn(bob.file, args, {
     shell: false,
     cwd: opts.workspace,
@@ -82,7 +84,17 @@ export function runBob(opts: RunOptions): RunHandle {
   let inAssistant = false;
   const splitter = new LineSplitter();
   const onLine = (line: string) => {
-    raw.write(line + '\n');
+    const lineWithNewline = line + '\n';
+    rawBytesWritten += Buffer.byteLength(lineWithNewline, 'utf8');
+    if (!rawCapExceeded) {
+      if (rawBytesWritten <= HARD_LIMITS.rawFileMaxBytes) {
+        raw.write(lineWithNewline);
+      } else {
+        rawCapExceeded = true;
+        // Write a sentinel so consumers know the file was truncated.
+        raw.write(JSON.stringify({ type: 'error', message: 'raw file size cap exceeded; output truncated' }) + '\n');
+      }
+    }
     const parsed = parseLine(line);
     if (!parsed.ok) return;
     const ev = parsed.value;

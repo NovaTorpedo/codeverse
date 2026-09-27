@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useStore } from '../../store';
 import { GroundingRing } from '../../ui/GroundingRing';
+import { TourPlayer } from './TourPlayer';
 
 /**
  * Tour extension point. The world's tour document (schema: codeverse.tour) is loaded into
@@ -57,6 +58,7 @@ export function TourPanel() {
           </li>
         ))}
       </ol>
+      <TourPlayer />
     </motion.aside>
   );
 }
