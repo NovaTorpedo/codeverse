@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 1,
+  "kind": "codeverse.semantic",
+  "synthetic": false,
+  "generatedBy": {
+    "tool": "ibm-bob",
+    "client": "bob-ide",
+    "mode": "agent",
+    "skill": "codeverse-scan",
+    "recordedAt": "2026-09-26T23:53:32Z"
+  },
+  "target": "demo/shopfloor",
+  "summary": "Shopfloor is a monolithic Node.js e-commerce demo divided into 10 service districts under demo/shopfloor/src/. A single HTTP gateway (gateway) receives all requests and delegates to auth, cart, checkout, inventory, payment, and notifications. State is backed by an in-memory document store (db). The critical path is POST /checkout → CheckoutService.placeOrder → InventoryService.reserve → PaymentService.charge → CardGatewayClient.charge (external PSP simulation) → NotificationService.orderConfirmed.",
+  "services": [
+    {
+      "id": "svc:auth",
+      "name": "Auth",
+      "responsibility": "Authenticates users via password or SSO and manages the session lifecycle. Provides AuthService for credential validation and session creation, and SessionStore for in-memory session persistence.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/auth/auth.service.ts",
+          "line": 17,
+          "symbol": "AuthService"
+        },
+        {
+          "file": "demo/shopfloor/src/auth/session.store.ts",
+          "line": 6,
+          "symbol": "SessionStore"
+        }
+      ]
+    },
+    {
+      "id": "svc:cart",
+      "name": "Cart",
+      "responsibility": "Manages per-customer shopping carts in memory, supporting item addition with stock validation, total calculation, and cart clearing. Reads product records from the db district.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/cart/cart.service.ts",
+          "line": 9,
+          "symbol": "CartService"
+        }
+      ]
+    },
+    {
+      "id": "svc:checkout",
+      "name": "Checkout",
+      "responsibility": "Orchestrates the order placement workflow: validates the cart, reserves inventory, charges the customer, clears the cart, and dispatches confirmation or failure notifications. All coordination happens inside CheckoutService.placeOrder.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "line": 11,
+          "symbol": "CheckoutService"
+        },
+        {
+          "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "line": 19,
+          "symbol": "CheckoutService.placeOrder"
+        }
+      ]
+    },
+    {
+      "id": "svc:customer",
+      "name": "Customer",
+      "responsibility": "Loads and caches customer profiles (including billing information) from the database. CustomerService provides getBillingProfile for payment and loadProfile for session hydration.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/customer/customer.service.ts",
+          "line": 7,
+          "symbol": "CustomerService"
+        },
+        {
+          "file": "demo/shopfloor/src/customer/profile.repository.ts",
+          "line": 4,
+          "symbol": "ProfileRepository"
+        }
+      ]
+    },
+    {
+      "id": "svc:db",
+      "name": "DB",
+      "responsibility": "Provides an in-memory document store (DbClient) with findById, findOne, upsert, and update operations, plus a seed function that populates users, customer profiles, and stock inventory on startup.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/db/client.ts",
+          "line": 8,
+          "symbol": "DbClient"
+        },
+        {
+          "file": "demo/shopfloor/src/db/seed.ts",
+          "line": 55,
+          "symbol": "seed"
+        }
+      ]
+    },
+    {
+      "id": "svc:gateway",
+      "name": "Gateway",
+      "responsibility": "The HTTP server entry point: registers all routes (auth, cart, checkout), applies request-id and session-authentication middleware, wires up all service instances, and maps errors to HTTP status codes.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/gateway/server.ts",
+          "line": 26,
+          "symbol": "createShopfloor"
+        },
+        {
+          "file": "demo/shopfloor/src/gateway/middleware.ts",
+          "line": 19,
+          "symbol": "authenticate"
+        }
+      ]
+    },
+    {
+      "id": "svc:inventory",
+      "name": "Inventory",
+      "responsibility": "Tracks available stock per SKU and manages reservation and release operations to prevent overselling. InventoryService.reserve blocks checkout if stock is insufficient and InventoryService.release rolls back on payment failure.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/inventory/inventory.service.ts",
+          "line": 15,
+          "symbol": "InventoryService"
+        },
+        {
+          "file": "demo/shopfloor/src/inventory/inventory.service.ts",
+          "line": 18,
+          "symbol": "InventoryService.reserve"
+        }
+      ]
+    },
+    {
+      "id": "svc:notifications",
+      "name": "Notifications",
+      "responsibility": "Queues transactional outbound emails for order confirmation and payment failure events. NotificationService maintains an outbox so that SMTP failures never block the checkout critical path.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/notifications/notification.service.ts",
+          "line": 13,
+          "symbol": "NotificationService"
+        }
+      ]
+    },
+    {
+      "id": "svc:payment",
+      "name": "Payment",
+      "responsibility": "Resolves the customer's stored card token, converts the order amount to minor currency units, and delegates to CardGatewayClient which simulates an external PSP with retry-on-timeout logic.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/payment/payment.service.ts",
+          "line": 16,
+          "symbol": "PaymentService"
+        },
+        {
+          "file": "demo/shopfloor/src/payment/card-gateway.client.ts",
+          "line": 22,
+          "symbol": "CardGatewayClient"
+        }
+      ]
+    },
+    {
+      "id": "svc:shared",
+      "name": "Shared",
+      "responsibility": "Cross-cutting utilities: HTTP error hierarchy (HttpError, PaymentDeclinedError, OutOfStockError, UnauthorizedError), a structured logger with pluggable sink and clock, and TypeScript domain interfaces (Session, Cart, Order, BillingProfile, etc.).",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/shared/errors.ts",
+          "line": 1,
+          "symbol": "HttpError"
+        },
+        {
+          "file": "demo/shopfloor/src/shared/logger.ts",
+          "line": 27,
+          "symbol": "createLogger"
+        },
+        {
+          "file": "demo/shopfloor/src/shared/types.ts",
+          "line": 24,
+          "symbol": "Session"
+        }
+      ]
+    }
+  ],
+  "entryPoints": [
+    {
+      "file": "demo/shopfloor/src/gateway/server.ts",
+      "symbol": "createShopfloor",
+      "description": "Factory function that seeds the database, wires all service instances, registers all HTTP routes (POST /auth/login, POST /auth/sso/callback, GET /cart, POST /cart/items, POST /checkout), and returns a { handle, notifications } object.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/gateway/server.ts",
+          "line": 26
+        }
+      ]
+    },
+    {
+      "file": "demo/shopfloor/src/gateway/server.ts",
+      "symbol": "createShopfloor",
+      "description": "POST /checkout route — authenticates the session then delegates to CheckoutService.placeOrder.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/gateway/server.ts",
+          "line": 58
+        }
+      ]
+    },
+    {
+      "file": "demo/shopfloor/src/gateway/server.ts",
+      "symbol": "createShopfloor",
+      "description": "POST /auth/login route — accepts email+password and returns a sessionId cookie.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/gateway/server.ts",
+          "line": 39
+        }
+      ]
+    },
+    {
+      "file": "demo/shopfloor/src/gateway/server.ts",
+      "symbol": "createShopfloor",
+      "description": "POST /auth/sso/callback route — accepts an SSO assertion and creates a session.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/gateway/server.ts",
+          "line": 44
+        }
+      ]
+    }
+  ],
+  "dataFlows": [
+    {
+      "id": "checkout",
+      "name": "POST /checkout → Card Processor",
+      "description": "End-to-end order placement flow. The HTTP gateway authenticates the session, then CheckoutService.placeOrder coordinates: (1) cart retrieval, (2) inventory reservation, (3) PaymentService.charge which resolves the stored card token and calls CardGatewayClient.charge (external PSP simulation with 2-attempt retry), (4) cart clear, (5) confirmation email enqueued. On any error after reservation, inventory is released and a paymentFailed email is enqueued.",
+      "steps": [
+        {
+          "from": "demo/shopfloor/src/gateway/server.ts",
+          "to": "demo/shopfloor/src/gateway/middleware.ts",
+          "via": "authenticate",
+          "citation": {
+            "file": "demo/shopfloor/src/gateway/server.ts",
+            "line": 59
+          }
+        },
+        {
+          "from": "demo/shopfloor/src/gateway/server.ts",
+          "to": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "via": "CheckoutService.placeOrder",
+          "citation": {
+            "file": "demo/shopfloor/src/gateway/server.ts",
+            "line": 60
+          }
+        },
+        {
+          "from": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "to": "demo/shopfloor/src/cart/cart.service.ts",
+          "via": "CartService.get",
+          "citation": {
+            "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+            "line": 20
+          }
+        },
+        {
+          "from": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "to": "demo/shopfloor/src/inventory/inventory.service.ts",
+          "via": "InventoryService.reserve",
+          "citation": {
+            "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+            "line": 26
+          }
+        },
+        {
+          "from": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "to": "demo/shopfloor/src/payment/payment.service.ts",
+          "via": "PaymentService.charge",
+          "citation": {
+            "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+            "line": 28
+          }
+        },
+        {
+          "from": "demo/shopfloor/src/payment/payment.service.ts",
+          "to": "demo/shopfloor/src/customer/customer.service.ts",
+          "via": "CustomerService.getBillingProfile",
+          "citation": {
+            "file": "demo/shopfloor/src/payment/payment.service.ts",
+            "line": 24
+          }
+        },
+        {
+          "from": "demo/shopfloor/src/payment/payment.service.ts",
+          "to": "demo/shopfloor/src/payment/card-gateway.client.ts",
+          "via": "CardGatewayClient.charge",
+          "citation": {
+            "file": "demo/shopfloor/src/payment/payment.service.ts",
+            "line": 28
+          }
+        },
+        {
+          "from": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "to": "demo/shopfloor/src/notifications/notification.service.ts",
+          "via": "NotificationService.orderConfirmed",
+          "citation": {
+            "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+            "line": 31
+          }
+        }
+      ]
+    },
+    {
+      "id": "password-login",
+      "name": "POST /auth/login → Session Created",
+      "description": "Password-based login flow. The gateway receives email+password, AuthService looks up the user in db, validates the fakeHash, creates a session via SessionStore, hydrates the customer profile, and returns a sessionId.",
+      "steps": [
+        {
+          "from": "demo/shopfloor/src/gateway/server.ts",
+          "to": "demo/shopfloor/src/auth/auth.service.ts",
+          "via": "AuthService.loginWithPassword",
+          "citation": {
+            "file": "demo/shopfloor/src/gateway/server.ts",
+            "line": 41
+          }
+        },
+        {
+          "from": "demo/shopfloor/src/auth/auth.service.ts",
+          "to": "demo/shopfloor/src/db/client.ts",
+          "via": "DbClient.findOne",
+          "citation": {
+            "file": "demo/shopfloor/src/auth/auth.service.ts",
+            "line": 25
+          }
+        },
+        {
+          "from": "demo/shopfloor/src/auth/auth.service.ts",
+          "to": "demo/shopfloor/src/customer/customer.service.ts",
+          "via": "CustomerService.loadProfile",
+          "citation": {
+            "file": "demo/shopfloor/src/auth/auth.service.ts",
+            "line": 31
+          }
+        }
+      ]
+    }
+  ]
+}
