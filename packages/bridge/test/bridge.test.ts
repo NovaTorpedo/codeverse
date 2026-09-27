@@ -108,6 +108,32 @@ describe('runner', () => {
     rmSync(tmp, { recursive: true, force: true });
   });
 
+  it('counts a run of streamed assistant chunks as one turn, not one turn per chunk', async () => {
+    const tmp = mkdtempSync(path.join(os.tmpdir(), 'cv-raw-'));
+    process.env.FAKE_BOB_TEXT_CHUNKS = '1';
+    try {
+      const events: Array<Record<string, unknown>> = [];
+      const res = await runBob({ workspace: repoRoot, prompt: 'hi', rawFile: path.join(tmp, 'c.ndjson'), bob: fakeBob, maxTurns: 3, onEvent: (e) => events.push(e) }).done;
+      expect(res.reason).toBe('exit');
+      expect(events.at(-1)?.type).toBe('result');
+    } finally {
+      delete process.env.FAKE_BOB_TEXT_CHUNKS;
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('still kills a run that exceeds the turn cap', async () => {
+    const tmp = mkdtempSync(path.join(os.tmpdir(), 'cv-raw-'));
+    process.env.FAKE_BOB_MANY_TURNS = '1';
+    try {
+      const res = await runBob({ workspace: repoRoot, prompt: 'hi', rawFile: path.join(tmp, 'm.ndjson'), bob: fakeBob, maxTurns: 3, timeoutMs: 20_000, onEvent: () => undefined }).done;
+      expect(res.reason).toBe('turn-cap');
+    } finally {
+      delete process.env.FAKE_BOB_MANY_TURNS;
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('kills the process tree on timeout', async () => {
     const tmp = mkdtempSync(path.join(os.tmpdir(), 'cv-raw-'));
     process.env.FAKE_BOB_HANG = '1';

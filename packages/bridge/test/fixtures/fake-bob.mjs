@@ -16,6 +16,25 @@ process.stdin.on('end', async () => {
     setInterval(() => out({ type: 'message', role: 'assistant', isReasoning: true, content: 'still thinking' }), 50);
     return;
   }
+  if (process.env.FAKE_BOB_MANY_TURNS) {
+    let i = 0;
+    setInterval(() => {
+      out({ type: 'message', role: 'assistant', content: `turn ${i}` });
+      out({ type: 'tool_use', tool_name: 'read_file', tool_id: `t${i}`, parameters: { path: 'README.md' } });
+      out({ type: 'tool_result', tool_id: `t${i++}`, status: 'success', output: 'ok' });
+    }, 5);
+    return;
+  }
+  if (process.env.FAKE_BOB_TEXT_CHUNKS) {
+    // Like real Bob Shell: assistant text arrives as many tiny message events.
+    const words = 'I will read the ticket and the logs first, then check each suspect in parallel. '.repeat(3).match(/.{1,4}/g);
+    for (const w of words.slice(0, 60)) out({ type: 'message', role: 'assistant', content: w });
+    out({ type: 'tool_use', tool_name: 'read_file', tool_id: 't1', parameters: { path: 'demo/shopfloor/tickets/INC-2417.txt' } });
+    out({ type: 'tool_result', tool_id: 't1', status: 'success', output: 'ok' });
+    for (const w of words.slice(0, 60)) out({ type: 'message', role: 'assistant', content: w });
+    out({ type: 'result', status: 'success', stats: { tool_calls: 1 } });
+    process.exit(0);
+  }
   const lines = readFileSync(path.join(here, '../../../stream/test/fixtures/investigate.synthetic.ndjson'), 'utf8').split('\n').filter(Boolean);
   // Emit in awkward chunks to exercise partial-line handling.
   const text = lines.join('\n') + '\n';

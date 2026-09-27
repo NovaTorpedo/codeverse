@@ -79,13 +79,17 @@ export function runBob(opts: RunOptions): RunHandle {
   const maxTurns = clampTurns(opts.maxTurns);
   const state: { reason: RunEndReason } = { reason: 'exit' };
   let assistantTurns = 0;
+  let inAssistant = false;
   const splitter = new LineSplitter();
   const onLine = (line: string) => {
     raw.write(line + '\n');
     const parsed = parseLine(line);
     if (!parsed.ok) return;
     const ev = parsed.value;
-    if (ev.type === 'message' && ev.role === 'assistant' && ev.isReasoning !== true) assistantTurns++;
+    // Bob Shell streams assistant text as many chunks; a turn is one run of consecutive assistant chunks.
+    const isAssistant = ev.type === 'message' && ev.role === 'assistant' && ev.isReasoning !== true;
+    if (isAssistant && !inAssistant) assistantTurns++;
+    inAssistant = isAssistant;
     opts.onEvent(ev);
     if (assistantTurns > maxTurns + 2 && state.reason === 'exit') {
       state.reason = 'turn-cap';

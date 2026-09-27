@@ -70,6 +70,16 @@ describe('RecordingBuilder', () => {
     expect(duration(rec)).toBe(23_100);
   });
 
+  it('merges streamed assistant text chunks into one message per turn', () => {
+    const b = new RecordingBuilder(idx);
+    const msg = (content: string) => JSON.stringify({ type: 'message', role: 'assistant', content });
+    b.pushChunk([msg('I wi'), msg('ll re'), msg('ad the ticket.'), '{"type":"tool_use","tool_name":"read_file","tool_id":"a","parameters":{"path":"src/cart/cart.service.ts"}}', msg('Do'), msg('ne.')].join('\n') + '\n');
+    expect(b.events.map((e) => e.type)).toEqual(['message', 'tool_use', 'message']);
+    expect(b.events.map((e) => e.seq)).toEqual([0, 1, 2]);
+    expect(b.events[0]?.content).toBe('I will read the ticket.');
+    expect(b.events[2]?.content).toBe('Done.');
+  });
+
   it('ignores non-JSON lines and prototype keys', () => {
     const b = new RecordingBuilder(idx);
     b.pushChunk('warning: not json\n{"type":"tool_use","tool_name":"read_file","tool_id":"x","parameters":{"__proto__":{"evil":1},"path":"src/cart/cart.service.ts"}}\n');

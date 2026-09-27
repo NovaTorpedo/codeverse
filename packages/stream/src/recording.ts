@@ -56,6 +56,12 @@ export class RecordingBuilder {
     const t = this.offset(raw);
     const ev = normalizeEvent(raw, this.events.length, t);
     ev.lane = this.assignLane(raw, ev);
+    // Bob Shell streams assistant text in small chunks; consecutive chunks form one message.
+    const prev = this.events.at(-1);
+    if (ev.type === 'message' && prev?.type === 'message' && prev.role === ev.role && ev.role === 'assistant' && prev.isReasoning === ev.isReasoning && prev.lane === ev.lane) {
+      prev.content = ((prev.content ?? '') + (ev.content ?? '')).slice(0, 20_000);
+      return prev;
+    }
     if (this.index) {
       if (ev.type === 'tool_use') ev.targets = targetsForToolUse(this.index, ev);
       if (ev.type === 'tool_result') ev.targets = filesInText(this.index, ev.output);
