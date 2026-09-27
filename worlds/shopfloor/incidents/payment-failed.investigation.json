@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 1,
+  "kind": "codeverse.investigation",
+  "synthetic": false,
+  "generatedBy": {
+    "tool": "ibm-bob",
+    "client": "bob-shell",
+    "mode": "codeverse-cartographer",
+    "skill": "codeverse-investigate",
+    "recordedAt": "2026-09-27T00:59:24Z"
+  },
+  "target": "demo/shopfloor",
+  "symptom": "POST /checkout returns HTTP 500 'Something went wrong' for customers who signed in via SSO. Password-login customers are unaffected. Three confirmed failures since ~13:30 UTC on 2026-09-24, all business accounts. No charges to the card. requestId 7c4be913-checkout.",
+  "summary": "SSO sessions are created with customer set to null (session.store.ts:16). The gateway middleware that lazily hydrates the customer profile checks customer === undefined (middleware.ts:21), so it skips hydration when customer is null — the wrong sentinel. When checkout calls PaymentService.charge, getBillingProfile reads session.customer (null), falls through to the cache (cold — loadProfile was never called for SSO logins), logs customer.billing_profile_missing, and returns null. The non-null assertion on payment.service.ts:24 suppresses the TypeScript error, and billing.defaultCardToken on line 25 crashes at runtime with TypeError: Cannot read properties of null (reading 'defaultCardToken'). The crash propagates unhandled through CheckoutService.placeOrder and the gateway catch block returns HTTP 500. Password-login sessions call loadProfile during login (auth.service.ts:31) and set session.customer to a real profile, so they never hit the null branch. The minimal fix is changing the middleware null-check from === undefined to == null so that SSO sessions are hydrated on first request.",
+  "rootCause": {
+    "title": "SSO login leaves session.customer as null; middleware hydration guard checks === undefined, skipping null sessions",
+    "explanation": "SessionStore.create always initialises customer to null (session.store.ts:16). loginWithPassword immediately overwrites this with the loaded profile (auth.service.ts:31), but loginWithSso returns the session as-is without calling loadProfile (auth.service.ts:48-50). The gateway authenticate middleware is meant to lazily hydrate these sessions, but its guard is `if (session.customer === undefined)` (middleware.ts:21). Because null !== undefined, the hydration block is skipped entirely for every SSO session. Later, CustomerService.getBillingProfile checks `if (session.customer)` (customer.service.ts:26) — null is falsy, so it falls through to the in-process cache. The cache is also cold because loadProfile was never called for this customer in this server instance. The method logs customer.billing_profile_missing and returns null (customer.service.ts:28-30). Back in PaymentService.charge, the TypeScript non-null assertion `!` on line 24 (payment.service.ts:24) hides the null from the type checker; accessing billing.defaultCardToken on line 25 throws at runtime. The error is not an HttpError so the gateway catch block (server.ts:78-86) returns HTTP 500 with a generic message.",
+    "citations": [
+      {
+        "file": "demo/shopfloor/src/auth/session.store.ts",
+        "line": 16,
+        "symbol": "SessionStore.create"
+      },
+      {
+        "file": "demo/shopfloor/src/auth/auth.service.ts",
+        "line": 41,
+        "endLine": 51,
+        "symbol": "AuthService.loginWithSso"
+      },
+      {
+        "file": "demo/shopfloor/src/auth/auth.service.ts",
+        "line": 31,
+        "symbol": "AuthService.loginWithPassword"
+      },
+      {
+        "file": "demo/shopfloor/src/gateway/middleware.ts",
+        "line": 21,
+        "symbol": "authenticate"
+      },
+      {
+        "file": "demo/shopfloor/src/customer/customer.service.ts",
+        "line": 25,
+        "endLine": 33,
+        "symbol": "CustomerService.getBillingProfile"
+      },
+      {
+        "file": "demo/shopfloor/src/payment/payment.service.ts",
+        "line": 24,
+        "endLine": 25,
+        "symbol": "PaymentService.charge"
+      }
+    ]
+  },
+  "executionPath": [
+    {
+      "id": "sso-login",
+      "label": "SSO Login",
+      "file": "demo/shopfloor/src/auth/auth.service.ts",
+      "symbol": "AuthService.loginWithSso",
+      "line": 41,
+      "status": "ok",
+      "note": "Session created with customer: null. loadProfile never called. session.save not called."
+    },
+    {
+      "id": "gateway-checkout",
+      "label": "Gateway /checkout",
+      "file": "demo/shopfloor/src/gateway/server.ts",
+      "symbol": "createShopfloor",
+      "line": 58,
+      "status": "ok",
+      "note": "POST /checkout handler reached. authenticate() called."
+    },
+    {
+      "id": "middleware-authenticate",
+      "label": "Middleware Hydration",
+      "file": "demo/shopfloor/src/gateway/middleware.ts",
+      "symbol": "authenticate",
+      "line": 21,
+      "status": "ok",
+      "note": "Guard checks session.customer === undefined. SSO session has customer: null — condition is false. Hydration skipped."
+    },
+    {
+      "id": "checkout-placeorder",
+      "label": "CheckoutService.placeOrder",
+      "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+      "symbol": "CheckoutService.placeOrder",
+      "line": 28,
+      "status": "ok",
+      "note": "Inventory reserved. Calls payments.charge with session that has customer: null."
+    },
+    {
+      "id": "payment-charge",
+      "label": "PaymentService.charge",
+      "file": "demo/shopfloor/src/payment/payment.service.ts",
+      "symbol": "PaymentService.charge",
+      "line": 24,
+      "status": "ok",
+      "note": "getBillingProfile returns null. Non-null assertion ! suppresses TS error."
+    },
+    {
+      "id": "billing-null-deref",
+      "label": "Null Dereference",
+      "file": "demo/shopfloor/src/payment/payment.service.ts",
+      "symbol": "PaymentService.charge",
+      "line": 25,
+      "status": "failed",
+      "note": "billing is null. Accessing billing.defaultCardToken throws TypeError at runtime."
+    },
+    {
+      "id": "gateway-500",
+      "label": "Gateway 500",
+      "file": "demo/shopfloor/src/gateway/server.ts",
+      "symbol": "createShopfloor",
+      "line": 78,
+      "status": "not-reached",
+      "note": "Unhandled error catch block returns HTTP 500 internal_error."
+    }
+  ],
+  "failure": {
+    "stepId": "billing-null-deref",
+    "errorType": "TypeError",
+    "message": "Cannot read properties of null (reading 'defaultCardToken')",
+    "citations": [
+      {
+        "file": "demo/shopfloor/src/payment/payment.service.ts",
+        "line": 25,
+        "symbol": "PaymentService.charge"
+      },
+      {
+        "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson",
+        "line": 33
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "kind": "ticket",
+      "text": "Customer cus_2002 (business account) signed in through 'our company login' (SSO). Support could not reproduce with the support test account (password login). Two more tickets since 13:40 UTC, both business accounts.",
+      "citation": {
+        "file": "demo/shopfloor/tickets/INC-2417.txt",
+        "line": 8,
+        "endLine": 19
+      }
+    },
+    {
+      "kind": "ticket",
+      "text": "Failing request identified: requestId 7c4be913-checkout. Error: TypeError: Cannot read properties of null (reading 'defaultCardToken'), stack goes through PaymentService.charge.",
+      "citation": {
+        "file": "demo/shopfloor/tickets/INC-2417.txt",
+        "line": 34,
+        "endLine": 37
+      }
+    },
+    {
+      "kind": "log",
+      "text": "{\"level\":\"info\",\"service\":\"auth\",\"event\":\"auth.login_succeeded\",\"requestId\":\"7c4be913-login\",\"method\":\"sso\",\"userId\":\"usr_1002\",\"sessionId\":\"sess_a4cc2a0b-cac\"}",
+      "citation": {
+        "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson",
+        "line": 18
+      }
+    },
+    {
+      "kind": "log",
+      "text": "{\"level\":\"warn\",\"service\":\"customer\",\"event\":\"customer.billing_profile_missing\",\"customerId\":\"cus_2002\",\"sessionMethod\":\"sso\"}",
+      "citation": {
+        "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson",
+        "line": 27
+      }
+    },
+    {
+      "kind": "log",
+      "text": "{\"level\":\"error\",\"service\":\"checkout\",\"event\":\"checkout.failed\",\"requestId\":\"7c4be913-checkout\",\"error\":\"TypeError: Cannot read properties of null (reading 'defaultCardToken')\"}",
+      "citation": {
+        "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson",
+        "line": 32
+      }
+    },
+    {
+      "kind": "log",
+      "text": "Stack: TypeError at PaymentService.charge (payment.service.ts:25:31) at CheckoutService.placeOrder (checkout.service.ts:28:42) at async Object.handler (server.ts:60:21)",
+      "citation": {
+        "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson",
+        "line": 33
+      }
+    },
+    {
+      "kind": "log",
+      "text": "{\"level\":\"info\",\"service\":\"inventory\",\"event\":\"inventory.released\",\"requestId\":\"7c4be913-checkout\",\"reservationId\":\"res_muikp18r\"}",
+      "citation": {
+        "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson",
+        "line": 29
+      }
+    },
+    {
+      "kind": "code",
+      "text": "SessionStore.create always sets customer: null on new sessions.",
+      "citation": {
+        "file": "demo/shopfloor/src/auth/session.store.ts",
+        "line": 16,
+        "symbol": "SessionStore.create"
+      }
+    },
+    {
+      "kind": "code",
+      "text": "loginWithPassword calls customers.loadProfile and assigns to session.customer (line 31), then sessions.save (line 32). loginWithSso does neither — session.customer stays null.",
+      "citation": {
+        "file": "demo/shopfloor/src/auth/auth.service.ts",
+        "line": 31,
+        "endLine": 50,
+        "symbol": "AuthService.loginWithPassword"
+      }
+    },
+    {
+      "kind": "code",
+      "text": "authenticate middleware hydration guard: `if (session.customer === undefined)`. SSO sessions have customer: null, so the guard is false and loadProfile is never called.",
+      "citation": {
+        "file": "demo/shopfloor/src/gateway/middleware.ts",
+        "line": 21,
+        "symbol": "authenticate"
+      }
+    },
+    {
+      "kind": "code",
+      "text": "getBillingProfile: if session.customer is null (falsy), falls through to cache. Cache is cold for SSO sessions. Logs warning and returns null.",
+      "citation": {
+        "file": "demo/shopfloor/src/customer/customer.service.ts",
+        "line": 25,
+        "endLine": 33,
+        "symbol": "CustomerService.getBillingProfile"
+      }
+    },
+    {
+      "kind": "code",
+      "text": "PaymentService.charge uses non-null assertion `!` on getBillingProfile result. If it returns null, accessing billing.defaultCardToken on line 25 throws TypeError at runtime.",
+      "citation": {
+        "file": "demo/shopfloor/src/payment/payment.service.ts",
+        "line": 24,
+        "endLine": 25,
+        "symbol": "PaymentService.charge"
+      }
+    }
+  ],
+  "ruledOut": [
+    {
+      "hypothesis": "Card processor (PSP) latency or timeout is the cause of the 500 error",
+      "reason": "The PSP timeout appears only on requestId a1f09c2e-checkout (password login, log line 13), where attempt 1 timed out but attempt 2 succeeded (log line 14). requestId 7c4be913-checkout never emits psp.timeout or payment.charge_started — the crash happens before the PSP is contacted, at payment.service.ts:25 when billing is null. card-gateway.client.ts retries up to MAX_ATTEMPTS=2 and only throws after exhausting retries. PSP latency is a coincidence, unrelated to this incident.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson",
+          "line": 13,
+          "endLine": 14
+        },
+        {
+          "file": "demo/shopfloor/src/payment/card-gateway.client.ts",
+          "line": 18,
+          "endLine": 36
+        }
+      ]
+    },
+    {
+      "hypothesis": "Inventory low-stock or reservation failure causes the 500 error",
+      "reason": "inventory.low_stock appears on requestId a1f09c2e-checkout (log line 10), not on the failing 7c4be913-checkout. For 7c4be913, inventory.reserved succeeds (log line 26) and inventory.released is logged (log line 29), correctly released in the catch block of CheckoutService.placeOrder (checkout.service.ts:35). An OutOfStockError would return 409, not a TypeError 500.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson",
+          "line": 26,
+          "endLine": 29
+        },
+        {
+          "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "line": 34,
+          "endLine": 35,
+          "symbol": "CheckoutService.placeOrder"
+        }
+      ]
+    },
+    {
+      "hypothesis": "SMTP degradation (notifications.smtp_degraded) causes the 500 error",
+      "reason": "The smtp_degraded warning (log line 30) is emitted after billing_profile_missing and before checkout.failed — it belongs to the failure notification path in the catch block (checkout.service.ts:36). The checkout failure was already in progress. NotificationService queues emails when SMTP is degraded; it does not throw. The 500 is the TypeError from billing null dereference, not an SMTP failure.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson",
+          "line": 30,
+          "endLine": 32
+        },
+        {
+          "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "line": 36,
+          "symbol": "CheckoutService.placeOrder"
+        }
+      ]
+    },
+    {
+      "hypothesis": "Orders are being lost or customers are double-charged",
+      "reason": "No charge was ever attempted for 7c4be913-checkout: the crash occurs at payment.service.ts:25 before gateway.charge is called. The customer's bank shows no pending authorisation (ticket line 19). The inventory reservation is released in the catch block (checkout.service.ts:35, confirmed by inventory.released log line 29). No order record is created. There is no data loss or double-charge risk for the failing requests.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "line": 34,
+          "endLine": 35,
+          "symbol": "CheckoutService.placeOrder"
+        },
+        {
+          "file": "demo/shopfloor/src/payment/payment.service.ts",
+          "line": 28,
+          "symbol": "PaymentService.charge"
+        },
+        {
+          "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson",
+          "line": 29
+        },
+        {
+          "file": "demo/shopfloor/tickets/INC-2417.txt",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "hypothesis": "The bug affects all authenticated customers, not just SSO users",
+      "reason": "requestId a1f09c2e-checkout (password login, log line 3) completes successfully with status 201 (log line 17). loginWithPassword eagerly calls loadProfile (auth.service.ts:31) so session.customer is always a real CustomerProfile by checkout time. Only SSO sessions arrive at middleware with customer: null. All three failing tickets are business accounts, consistent with SSO being the enterprise login method.",
+      "citations": [
+        {
+          "file": "demo/shopfloor/logs/checkout-2026-09-24.ndjson",
+          "line": 3,
+          "endLine": 17
+        },
+        {
+          "file": "demo/shopfloor/src/auth/auth.service.ts",
+          "line": 31,
+          "symbol": "AuthService.loginWithPassword"
+        },
+        {
+          "file": "demo/shopfloor/tickets/INC-2417.txt",
+          "line": 16,
+          "endLine": 20
+        }
+      ]
+    }
+  ],
+  "fix": {
+    "summary": "Change the middleware hydration guard from `=== undefined` to `== null` so that SSO sessions (which have customer: null) are hydrated on their first authenticated request, as the comment on middleware.ts:17 describes. This is the minimal one-character fix. No schema or DB change required.",
+    "diff": "--- a/demo/shopfloor/src/gateway/middleware.ts\n+++ b/demo/shopfloor/src/gateway/middleware.ts\n@@ -19,7 +19,7 @@\n export async function authenticate(req: Request, auth: AuthService, customers: CustomerService): Promise<Session> {\n   const session = auth.resolveSession(readSessionCookie(req));\n-  if (session.customer === undefined) {\n+  if (session.customer == null) {\n     session.customer = await customers.loadProfile(session.customerId);\n     log.debug('gateway.session_hydrated', { requestId: req.requestId, sessionId: session.id });\n   }\n   return session;\n }",
+    "files": [
+      "demo/shopfloor/src/gateway/middleware.ts"
+    ],
+    "testsToRun": [
+      "npm run test:demo"
+    ]
+  },
+  "verification": {
+    "status": "pending"
+  }
+}
