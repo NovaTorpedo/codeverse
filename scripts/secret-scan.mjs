@@ -22,5 +22,9 @@ for (const [sha, path] of blobs) {
   const text = git(['cat-file', '-p', sha]);
   for (const hit of findSecrets(text)) problems.push(`${path} (blob ${sha.slice(0, 8)}):${hit.line} ${hit.id}`);
 }
+// Commit metadata is public too: author and committer emails must be no-reply addresses.
+const NOREPLY = /(@users\.noreply\.github\.com|^noreply@github\.com|^noreply@anthropic\.com)$/i;
+const emails = new Set(git(['log', '--all', '--format=%ae%n%ce%n%(trailers:key=Co-authored-by,valueonly)']).split('\n').map((l) => (l.match(/<([^>]+)>/)?.[1] ?? l).trim()).filter(Boolean));
+for (const e of emails) if (!NOREPLY.test(e)) problems.push(`commit metadata uses a non-noreply email (${e.replace(/^(.).*(@.*)$/, '$1…$2')})`);
 if (problems.length) { console.error('[secrets] findings in history:\n  ' + problems.join('\n  ')); process.exit(1); }
 console.log(`[secrets] ok (${blobs.size} objects scanned across full history)`);
