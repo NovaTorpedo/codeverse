@@ -2,7 +2,7 @@
 
 **See your software think.** CodeVerse turns a repository into a living 3D city and replays how IBM Bob investigates it, step by step, with every claim checked against the code.
 
-- **Live demo:** _coming soon_
+- **Live demo:** https://codeverse-dzqr.onrender.com
 - **Video:** _coming soon_
 
 ## How IBM Bob powers CodeVerse
