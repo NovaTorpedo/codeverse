@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 1,
+  "kind": "codeverse.tour",
+  "synthetic": false,
+  "generatedBy": {
+    "tool": "ibm-bob",
+    "client": "bob-ide",
+    "mode": "codeverse-cartographer",
+    "skill": "codeverse-tour",
+    "recordedAt": "2026-09-27T02:09:19Z"
+  },
+  "target": "demo/shopfloor",
+  "title": "Shopfloor: e-commerce service in 10 minutes",
+  "estimatedMinutes": 10,
+  "waypoints": [
+    {
+      "id": "w1",
+      "node": "svc:demo/shopfloor/src/gateway",
+      "title": "The front door: routes and wiring",
+      "narration": "Every HTTP request enters through createShopfloor in gateway/server.ts. This factory function creates all services, wires their dependencies together, and registers the five routes the API exposes. It also defines the central handle() dispatcher that logs every request and translates thrown HttpErrors into proper HTTP responses.",
+      "notice": [
+        "All five routes are registered in one place (lines 38-62)",
+        "handle() is the only error boundary: HttpError becomes a structured JSON response, anything else becomes a 500",
+        "Dependencies flow inward: CheckoutService receives all other services via constructor injection"
+      ],
+      "related": [
+        {
+          "file": "demo/shopfloor/src/gateway/server.ts",
+          "line": 26,
+          "symbol": "createShopfloor"
+        },
+        {
+          "file": "demo/shopfloor/src/gateway/server.ts",
+          "line": 64,
+          "symbol": "handle"
+        },
+        {
+          "file": "demo/shopfloor/src/gateway/server.ts",
+          "line": 38
+        }
+      ],
+      "deeper": [
+        {
+          "question": "How does the router match URLs with path parameters like /cart/:id?",
+          "answer": "The Router class in gateway/router.ts converts path templates into regexes by replacing :param segments with named capture groups. The match() method tests the incoming path against each registered pattern and returns the handler plus a params object populated from the captures.",
+          "citations": [
+            {
+              "file": "demo/shopfloor/src/gateway/router.ts",
+              "line": 13,
+              "symbol": "Router"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "w2",
+      "node": "demo/shopfloor/src/gateway/middleware.ts",
+      "title": "Request ID and session middleware",
+      "narration": "Two small functions perform cross-cutting work before any route handler runs. assignRequestId stamps each request with a correlation ID — either taken from the incoming x-request-id header (if it looks safe) or generated fresh. authenticate resolves the session from the sid cookie and, for SSO sessions that were created without a profile, lazily loads the customer record on the first authenticated call.",
+      "notice": [
+        "x-request-id is validated with a strict regex before being trusted (line 11)",
+        "Lazy profile hydration for SSO sessions happens here, not in AuthService (lines 21-24)",
+        "readSessionCookie is a private helper; only authenticate is exported"
+      ],
+      "related": [
+        {
+          "file": "demo/shopfloor/src/gateway/middleware.ts",
+          "line": 9,
+          "symbol": "assignRequestId"
+        },
+        {
+          "file": "demo/shopfloor/src/gateway/middleware.ts",
+          "line": 19,
+          "symbol": "authenticate"
+        },
+        {
+          "file": "demo/shopfloor/src/gateway/middleware.ts",
+          "line": 11
+        }
+      ],
+      "deeper": [
+        {
+          "question": "Why does authenticate modify session.customer in place rather than returning a new object?",
+          "answer": "Sessions are objects stored in the in-memory SessionStore map. Mutating session.customer and calling sessions.save() (done inside CustomerService.loadProfile flow) persists the hydrated profile back to the store, so subsequent requests on the same session skip the DB lookup entirely. It is a deliberate optimisation for the demo's in-memory architecture.",
+          "citations": [
+            {
+              "file": "demo/shopfloor/src/gateway/middleware.ts",
+              "line": 21
+            },
+            {
+              "file": "demo/shopfloor/src/customer/customer.service.ts",
+              "line": 12,
+              "symbol": "CustomerService.loadProfile"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "w3",
+      "node": "demo/shopfloor/src/auth/auth.service.ts",
+      "title": "Two login paths: password and SSO",
+      "narration": "AuthService offers two login strategies. Password login looks up the user by email, checks a fake hash stand-in, creates a session, and eagerly loads the customer profile before returning. SSO login validates the issuer is HTTPS, looks the user up by a composite ssoSubject key, and creates a session without a profile — that profile hydration is deferred to the first authenticated request in middleware.",
+      "notice": [
+        "loginWithPassword eagerly hydrates the profile (line 31); loginWithSso does not (line 48)",
+        "fakeHash is a demo-only stand-in: real code must never hardcode password hashes (lines 65-68)",
+        "issuerSlug extracts the first subdomain as the SSO provider name (line 61)"
+      ],
+      "related": [
+        {
+          "file": "demo/shopfloor/src/auth/auth.service.ts",
+          "line": 24,
+          "symbol": "AuthService.loginWithPassword"
+        },
+        {
+          "file": "demo/shopfloor/src/auth/auth.service.ts",
+          "line": 41,
+          "symbol": "AuthService.loginWithSso"
+        },
+        {
+          "file": "demo/shopfloor/src/auth/auth.service.ts",
+          "line": 65,
+          "symbol": "fakeHash"
+        }
+      ],
+      "deeper": [
+        {
+          "question": "What is the known bug with SSO checkout, and where does it surface?",
+          "answer": "When a user logs in via SSO, loginWithSso creates the session without populating session.customer (line 48). If the lazy hydration in middleware.authenticate fails or is skipped, CustomerService.getBillingProfile falls back to its in-memory cache. If that cache is also cold, it logs a warning and returns null. PaymentService.charge then throws a 500 billing_profile_missing error, causing checkout to fail for SSO users.",
+          "citations": [
+            {
+              "file": "demo/shopfloor/src/auth/auth.service.ts",
+              "line": 48
+            },
+            {
+              "file": "demo/shopfloor/src/customer/customer.service.ts",
+              "line": 25,
+              "symbol": "CustomerService.getBillingProfile"
+            },
+            {
+              "file": "demo/shopfloor/src/payment/payment.service.ts",
+              "line": 24,
+              "symbol": "PaymentService.charge"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "w4",
+      "node": "demo/shopfloor/src/cart/cart.service.ts",
+      "title": "Cart: in-memory line items",
+      "narration": "CartService keeps carts in a plain JavaScript Map keyed by customerId. get() lazily initialises an empty cart on first access. addItem() validates quantity (1-20), looks up the SKU in the stock table, and accumulates line items. total() is a simple sum of unitPrice times quantity with no discount logic — that is intentional for this demo.",
+      "notice": [
+        "Carts are stored in process memory — they are lost on restart",
+        "Currency comes from the stock record, not the customer's billing profile — the two could differ",
+        "clear() is called by CheckoutService after a successful charge, not by CartService itself"
+      ],
+      "related": [
+        {
+          "file": "demo/shopfloor/src/cart/cart.service.ts",
+          "line": 9,
+          "symbol": "CartService"
+        },
+        {
+          "file": "demo/shopfloor/src/cart/cart.service.ts",
+          "line": 23,
+          "symbol": "CartService.addItem"
+        },
+        {
+          "file": "demo/shopfloor/src/cart/cart.service.ts",
+          "line": 35,
+          "symbol": "CartService.total"
+        }
+      ],
+      "deeper": [
+        {
+          "question": "What happens if two requests add the same SKU to a cart concurrently?",
+          "answer": "CartService is not thread-safe in the traditional sense, but Node.js is single-threaded so synchronous operations are atomic. addItem() is async because it awaits a DB lookup, which yields the event loop. Two concurrent addItem calls for the same SKU could therefore each read the current quantity and both add to it independently, potentially resulting in a double-add. In the demo this is unlikely to matter, but a production implementation would need an optimistic lock or a serialised queue per cart.",
+          "citations": [
+            {
+              "file": "demo/shopfloor/src/cart/cart.service.ts",
+              "line": 23,
+              "symbol": "CartService.addItem"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "w5",
+      "node": "demo/shopfloor/src/checkout/checkout.service.ts",
+      "title": "Checkout: the core orchestration flow",
+      "narration": "CheckoutService.placeOrder is the most important method in the system. It validates the cart, reserves inventory, charges the card, clears the cart, and queues a confirmation email — all in sequence. If the payment charge throws, the catch block releases the inventory reservation and queues a payment-failed notification before re-throwing, so the system stays consistent.",
+      "notice": [
+        "Inventory is reserved before the payment charge — if payment fails, release() rolls it back (lines 26, 35)",
+        "orderRef is derived from the requestId to make payment idempotent (line 23)",
+        "Notifications are fire-and-forget: their await does not block the response and errors are not caught here"
+      ],
+      "related": [
+        {
+          "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "line": 19,
+          "symbol": "CheckoutService.placeOrder"
+        },
+        {
+          "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "line": 26
+        },
+        {
+          "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+          "line": 34
+        }
+      ],
+      "deeper": [
+        {
+          "question": "Is the inventory rollback safe if the notification service throws?",
+          "answer": "No — if notifications.paymentFailed (line 36) throws an exception, the catch block propagates it and the inventory release on line 35 would not have been reached yet if paymentFailed is awaited first. However, looking at the code, release() is called on line 35 before paymentFailed on line 36, so release always runs. The exception from paymentFailed would propagate but the inventory has already been released. In practice NotificationService queues emails and only throws on programmer error, not on SMTP failure.",
+          "citations": [
+            {
+              "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+              "line": 34
+            },
+            {
+              "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+              "line": 35
+            },
+            {
+              "file": "demo/shopfloor/src/checkout/checkout.service.ts",
+              "line": 36
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "w6",
+      "node": "demo/shopfloor/src/payment/payment.service.ts",
+      "title": "Payment: billing lookup and card charge",
+      "narration": "PaymentService.charge bridges the business logic and the external card processor. It fetches the customer's billing profile from CustomerService, converts the decimal total into minor currency units (pence, cents), and calls the CardGatewayClient with the card token and an idempotency key. The toMinorUnits helper handles JPY's zero-exponent edge case and carries a TODO to switch to banker's rounding.",
+      "notice": [
+        "If billing profile is null the method throws a 500 — this is the SSO checkout bug's symptom (line 25)",
+        "toMinorUnits uses Math.round which can introduce half-cent bias; a TODO marks it for banker's rounding (line 37)",
+        "The idempotency key is the orderRef, so retrying the same order will not double-charge the card (line 31)"
+      ],
+      "related": [
+        {
+          "file": "demo/shopfloor/src/payment/payment.service.ts",
+          "line": 23,
+          "symbol": "PaymentService.charge"
+        },
+        {
+          "file": "demo/shopfloor/src/payment/payment.service.ts",
+          "line": 39,
+          "symbol": "toMinorUnits"
+        },
+        {
+          "file": "demo/shopfloor/src/payment/payment.service.ts",
+          "line": 25
+        }
+      ],
+      "deeper": [
+        {
+          "question": "How does the CardGatewayClient retry on timeout, and could it silently swallow a real decline?",
+          "answer": "CardGatewayClient.charge loops up to MAX_ATTEMPTS (2) times. If the simulated latency exceeds TIMEOUT_MS (1500 ms), it logs a warning and continues to the next iteration — it does not abort. A card token starting with tok_declined always throws PaymentDeclinedError regardless of latency. If both attempts time out, the loop exhausts and throws PaymentDeclinedError with code processor_unavailable, which could mask a genuine timeout from a real decline.",
+          "citations": [
+            {
+              "file": "demo/shopfloor/src/payment/card-gateway.client.ts",
+              "line": 25,
+              "symbol": "CardGatewayClient.charge"
+            },
+            {
+              "file": "demo/shopfloor/src/payment/card-gateway.client.ts",
+              "line": 18
+            },
+            {
+              "file": "demo/shopfloor/src/payment/card-gateway.client.ts",
+              "line": 19
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "w7",
+      "node": "demo/shopfloor/src/db/client.ts",
+      "title": "The datastore: in-memory document store",
+      "narration": "DbClient is the system's single datastore — a Map of Maps standing in for a Postgres database. Every service that needs persistence receives a DbClient instance injected at startup. The four operations (findById, findOne, upsert, update) are all async to make swapping in a real database straightforward without changing callers. The seed function populates two test users, two customer profiles, and three stock items at startup.",
+      "notice": [
+        "findOne does a linear scan — fine for the demo's tiny dataset, but O(n) at scale (lines 26-31)",
+        "All state is process-local and lost on restart; there is no persistence or replication",
+        "The singleton export db on line 44 is not used by the app itself — services receive their own DbClient via injection"
+      ],
+      "related": [
+        {
+          "file": "demo/shopfloor/src/db/client.ts",
+          "line": 8,
+          "symbol": "DbClient"
+        },
+        {
+          "file": "demo/shopfloor/src/db/client.ts",
+          "line": 26,
+          "symbol": "DbClient.findOne"
+        },
+        {
+          "file": "demo/shopfloor/src/db/seed.ts",
+          "line": 1
+        }
+      ],
+      "deeper": [
+        {
+          "question": "What would need to change to swap DbClient for a real Postgres client?",
+          "answer": "Because all callers use the four async methods (findById, findOne, upsert, update) and never access the internal Map directly, you could create a PostgresDbClient that implements the same interface and inject it into createShopfloor in place of DbClient. The only caller-visible change would be that findOne with a multi-field where clause would need a matching SQL WHERE clause rather than the current Object.entries scan. No service or test file imports DbClient's internals.",
+          "citations": [
+            {
+              "file": "demo/shopfloor/src/db/client.ts",
+              "line": 8,
+              "symbol": "DbClient"
+            },
+            {
+              "file": "demo/shopfloor/src/gateway/server.ts",
+              "line": 27
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
